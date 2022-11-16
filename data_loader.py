@@ -6,12 +6,15 @@ import json
 
 # Uhh, some of the videos are uncanny as hell... It's like watching a real Mandela Catalogue
 # train will be a 5D numpy array. Number of videos - number of frames - row - col - rgb
+
 # TODO:
 #       We still have to crop out everything each frame except for the face in frames that have frontal face detection
+
 train = []
 sorted_keys = []
 mp4_files = []
 front_face_detector = cv2.CascadeClassifier("cascade-files/haarcascade_frontalface_alt2.xml")
+RESIZE_SIZE = (320, 320)
 
 # For profile picture detection (including side faces... We might need it later)...
 # profile_face_detector = cv2.CascadeClassifier("cascade-files/haarcascade_profileface.xml")
@@ -74,6 +77,7 @@ def capture_video(vid_dest):
             # Apparently, this colorspace is damn good for computer vision stuff. YCrBr that is.
             detect_face(frame)
             frame_np = np.asarray(frame)
+            # Might have to make frames only append the cropped one in the function detect_face()
             frames.append(frame_np)
             # Wait for 25 miliseconds
             if cv2.waitKey(25) & 0xFF == ord('q'):
@@ -95,10 +99,12 @@ def detect_face(frame):
     for (x, y, w, h) in faces:
         frame_bgr = cv2.rectangle(img=frame_bgr, pt1=(x, y), pt2=(x + w, y + h),
                                   color=(0, 255, 0), thickness=2)
+        cropped = frame_bgr[y:y+h, x:x+w]
+        cropped = cv2.resize(cropped, RESIZE_SIZE)
     # for (x, y, w, h) in profile_faces:
         # frame_bgr = cv2.rectangle(img=frame_bgr, pt1=(x, y), pt2=(x + w, y + h),
                                   # color=(0, 0, 255), thickness=2)
-    cv2.imshow("Facial detection", frame_bgr)
+        cv2.imshow("Facial detection cropped", cropped)
 
 
 if __name__ == "__main__":
