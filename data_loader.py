@@ -9,6 +9,7 @@ import json
 
 # TODO:
 #       We still have to crop out everything each frame except for the face in frames that have frontal face detection
+#       We still have to append the frontal face frame detection to the frames list, tho....
 
 train = []
 sorted_keys = []
