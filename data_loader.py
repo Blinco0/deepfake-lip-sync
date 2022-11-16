@@ -6,20 +6,22 @@ import json
 
 # Uhh, some of the videos are uncanny as hell... It's like watching a real Mandela Catalogue
 # train will be a 5D numpy array. Number of videos - number of frames - row - col - rgb
-# Do we need timestamp?
-# AND, do we need to load all videos in a single arrays like the 5D one.
-# or do we just have to have each video as its own separate numpy array, because I'm afraid that all videos might
-# not have the same number of frames.
 
-# We still have to crop out everything each frame except for the mouth...
-# Also, I think that we might have to use the freeworld VAAPI video codecs.
+# TODO:
+#       We still have to crop out everything each frame except for the face in frames that have frontal face detection
 train = []
 sorted_keys = []
 mp4_files = []
+front_face_detector = cv2.CascadeClassifier("cascade-files/haarcascade_frontalface_alt2.xml")
+
+# For profile picture detection (including side faces... We might need it later)...
+# profile_face_detector = cv2.CascadeClassifier("cascade-files/haarcascade_profileface.xml")
+
+if front_face_detector.empty():
+    print("Unable to open the haarcascade mouth detection xml file...")
+    exit(1)
 
 
-# Remember to use regex to grab the metadata and the json...
-# Ask Khoa on if we need to separate each video batch into their own directory...
 def get_files_and_get_meta_file(directory):
     files = []
     meta_files = []
@@ -41,8 +43,6 @@ def get_files_and_get_meta_file(directory):
 
 # Get the labels from the metadata.json. Real is 1, Fake is 0. Categorical Data into Integers.
 def get_labels(metafile_path):
-    # Uh oh... We need to line up the labels key entry with the directory one... DONE with the use of sorted keys
-    # labels_np will be a 1D numpy array after casting the returning labels[] as a nparray
     labels = []
     with open(metafile_path) as f:
         labels_dict = json.load(f)
@@ -64,17 +64,17 @@ def capture_video(vid_dest):
     frames = []
     if cap.isOpened() is False:
         print("Error opening video stream or file")
-        exit(1)
+        exit(2)
 
-    # Do we have to store every single frame on it?  Yes I think. Ask Khoa later today.
     while cap.isOpened():
         # Get the boolean if frame is found and the frame itself
         ret, frame = cap.read()
         # Check to see if frame is found. Otherwise, the video is considered to have gone through all frames.
         # Nice that frame is also a matrix
         if ret is True:
+            # Apparently, this colorspace is damn good for computer vision stuff. YCrBr that is.
+            detect_face(frame)
             frame_np = np.asarray(frame)
-            cv2.imshow("Frame", frame)
             frames.append(frame_np)
             # Wait for 25 miliseconds
             if cv2.waitKey(25) & 0xFF == ord('q'):
@@ -84,6 +84,22 @@ def capture_video(vid_dest):
     frames = np.asarray(frames)
     # Hmm, do I need to add frames to the train one? What did I mean by that???
     print(frames.shape)
+
+
+def detect_face(frame):
+    # frame_ycc = cv2.cvtColor(frame, cv2.COLOR_BGR2YCR_CB)
+    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    faces = front_face_detector.detectMultiScale(frame_bgr, minNeighbors=6,
+                                                 minSize=(125, 125), scaleFactor=1.15)
+    # profile_faces = profile_face_detector.detectMultiScale(frame_bgr, minNeighbors=6,
+                                                           # minSize=(150, 150), maxSize=(500, 500), scaleFactor=1.1)
+    for (x, y, w, h) in faces:
+        frame_bgr = cv2.rectangle(img=frame_bgr, pt1=(x, y), pt2=(x + w, y + h),
+                                  color=(0, 255, 0), thickness=2)
+    # for (x, y, w, h) in profile_faces:
+        # frame_bgr = cv2.rectangle(img=frame_bgr, pt1=(x, y), pt2=(x + w, y + h),
+                                  # color=(0, 0, 255), thickness=2)
+    cv2.imshow("Facial detection", frame_bgr)
 
 
 if __name__ == "__main__":
