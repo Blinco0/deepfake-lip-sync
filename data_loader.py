@@ -7,6 +7,7 @@ import json
 # Uhh, some of the videos are uncanny as hell... It's like watching a real Mandela Catalogue
 # train will be a 5D numpy array. Number of videos - number of frames - row - col - rgb
 
+
 # TODO:
 #       We still have to crop out everything each frame except for the face in frames that have frontal face detection
 train = []
