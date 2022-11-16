@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# test and train videos....
+train
+test
+
+# note
+note.py
+cascade-files
