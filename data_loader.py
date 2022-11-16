@@ -12,7 +12,6 @@ train = []
 sorted_keys = []
 mp4_files = []
 front_face_detector = cv2.CascadeClassifier("cascade-files/haarcascade_frontalface_alt2.xml")
-
 # For profile picture detection (including side faces... We might need it later)...
 # profile_face_detector = cv2.CascadeClassifier("cascade-files/haarcascade_profileface.xml")
 
