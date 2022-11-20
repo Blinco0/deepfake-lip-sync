@@ -5,13 +5,15 @@ import re
 import json
 
 # Uhh, some of the videos are uncanny as hell... It's like watching a real Mandela Catalogue
-# train will be a 5D numpy array. Number of videos - number of frames - row - col - rgb
+# Train is a 4D numpy array for the deepfake discriminator:
+# Number of frames collected - x coord - y coord - rgb values
 
 # TODO:
-#       We still have to crop out everything each frame except for the face in frames that have frontal face detection
-#       We still have to append the frontal face frame detection to the frames list, tho....
+#       Maybe refactor the code for getting the label. Don't want to open the json file for every single frame....
+
 
 train = []
+labels = []
 sorted_keys = []
 mp4_files = []
 front_face_detector = cv2.CascadeClassifier("cascade-files/haarcascade_frontalface_alt2.xml")
@@ -26,7 +28,7 @@ if front_face_detector.empty():
 
 
 def get_files_and_get_meta_file(directory):
-    files = []
+    file_paths = []
     meta_files = []
     vid_pattern = r".*\.mp4"
     metafile_pattern = r".*\.json"
@@ -36,35 +38,44 @@ def get_files_and_get_meta_file(directory):
                 # Join the filename and directory to get a complete relative filepath
                 filepath = os.path.join(directory, filename)
                 sorted_keys.append(filename)
-                files.append(filepath)
+                file_paths.append(filepath)
                 print(filepath)
             elif re.match(pattern=metafile_pattern, string=filename):
                 metafile_path = os.path.join(directory, filename)
                 meta_files.append(metafile_path)
-    return files, meta_files
+    return file_paths, meta_files
 
 
-# Get the labels from the metadata.json. Real is 1, Fake is 0. Categorical Data into Integers.
-def get_labels(metafile_path):
-    labels = []
+def get_labels_for_frame(metafile_path, source_video_path):
+    """
+    Get the label for each cropped frame using the source video's own label in the metafile_path parameter
+    :param metafile_path: the path to the meta file containing the labels for all videos in the training set.
+    :param source_video_path: path of the source video that the frame belongs to.
+    :return:None
+    """
+    pattern = r"^.*/(.*\.mp4)$"
     with open(metafile_path) as f:
         labels_dict = json.load(f)
-        for mp4_file in sorted_keys:
-            meta_data = labels_dict[mp4_file]
-            label = meta_data["label"]
-            if label.upper() == "FAKE":
-                labels.append(0)
-            elif label.upper() == "REAL":
-                labels.append(1)
-    return labels
+        source_video = re.match(pattern=pattern, string=source_video_path)[1]
+        meta_data = labels_dict[source_video]
+        label = meta_data["label"]
+        if label.upper() == "FAKE":
+            labels.append(0)
+        elif label.upper() == "REAL":
+            labels.append(1)
 
 
-def capture_video(vid_dest):
+def capture_video(vid_dest, metafile_path):
+    """
+
+    :param vid_dest:
+    :param metafile_path:
+    :return:
+    """
     cap = cv2.VideoCapture(vid_dest)
 
     # Check if the video can be turned into a stream successfully.
     # If not, probably check to make sure the destination is correct.
-    frames = []
     if cap.isOpened() is False:
         print("Error opening video stream or file")
         exit(2)
@@ -76,21 +87,23 @@ def capture_video(vid_dest):
         # Nice that frame is also a matrix
         if ret is True:
             # Apparently, this colorspace is damn good for computer vision stuff. YCrBr that is.
-            detect_face(frame)
-            frame_np = np.asarray(frame)
-            # Might have to make frames only append the cropped one in the function detect_face()
-            frames.append(frame_np)
+            detect_face_and_add_labels(frame, vid_dest, metafile_path)
             # Wait for 25 miliseconds
             if cv2.waitKey(25) & 0xFF == ord('q'):
                 break
         else:
             break
-    frames = np.asarray(frames)
-    # Hmm, do I need to add frames to the train one? What did I mean by that???
-    print(frames.shape)
 
 
-def detect_face(frame):
+def detect_face_and_add_labels(frame, vid_dest, metafile_path):
+    """
+    Crop and resize only the frontal face detection the pretrained model uses.
+    Will also label the frame as either 0 (FAKE) or 1 (REAL) according to the metadata file.
+    :param frame: a frame of the video.
+    :param vid_dest: the filepath to the video
+    :param metafile_path: the path of the metafile
+    :return: None
+    """
     # frame_ycc = cv2.cvtColor(frame, cv2.COLOR_BGR2YCR_CB)
     frame_bgr = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     faces = front_face_detector.detectMultiScale(frame_bgr, minNeighbors=6,
@@ -102,6 +115,11 @@ def detect_face(frame):
                                   color=(0, 255, 0), thickness=2)
         cropped = frame_bgr[y:y+h, x:x+w]
         cropped = cv2.resize(cropped, RESIZE_SIZE)
+        cropped_np = np.asarray(cropped)
+        # Only use the cropped and resized frame to append to the list of frames.
+        train.append(cropped_np)
+        # Add in the labels to each frame in accordance with the frame's source video label in the metadata.json
+        get_labels_for_frame(metafile_path=metafile_path, source_video_path=vid_dest)
     # for (x, y, w, h) in profile_faces:
         # frame_bgr = cv2.rectangle(img=frame_bgr, pt1=(x, y), pt2=(x + w, y + h),
                                   # color=(0, 0, 255), thickness=2)
@@ -110,13 +128,11 @@ def detect_face(frame):
 
 if __name__ == "__main__":
     directory = "train"
-    mp4_files, metafile_path = get_files_and_get_meta_file(directory)
-    metafile_path = metafile_path[0]  # There should be only one metafile in the training set/
-    labels_list = get_labels(metafile_path)
-    print(len(labels_list))
-    for mp4_file in mp4_files:
-        capture_video(mp4_file)
+    mp4_file_paths, metafile_path = get_files_and_get_meta_file(directory)
+    metafile_path = metafile_path[0]  # There should be only one metafile in the training set
+    for mp4_file in mp4_file_paths:
+        capture_video(mp4_file, metafile_path)
 
     # Yeah... There is a metadata.json here... I'm too lazy to get it out, so... Imma use regex...
     train_np = np.asarray(train)
-    labels_np = np.asarray(labels_list)
+    labels_np = np.asarray(labels)
