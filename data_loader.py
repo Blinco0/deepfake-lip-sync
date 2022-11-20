@@ -133,7 +133,7 @@ def detect_face_and_add_labels(frame, vid_dest, metafile_path):
         cv2.imshow("Facial detection cropped", cropped)
 
 
-if __name__ == "__main__":
+def main():
     directory = "train"
     mp4_file_paths, metafile_path = get_files_and_get_meta_file(directory)
     metafile_path = metafile_path[0]  # There should be only one metafile in the training set
@@ -143,6 +143,11 @@ if __name__ == "__main__":
     # train and labels don't have to be turned into numpy arrays.
     # train_np = np.asarray(train)
     # labels_test = np.asarray(labels)
-    # So, just put them here to make it easier to keep track of. train and labels should be filled with data by now.
-    train = train
-    labels = labels
+    #
+    train_set = train[:(len(train) // 2)]
+    train_label_set = labels[:(len(labels) // 2)]
+    test_set = train[(len(train) // 2):]
+    test_label_set = labels[(len(labels) // 2):]
+    return train_set, train_label_set, test_set, test_label_set
+
+
