@@ -5,8 +5,8 @@ import re
 import json
 
 # Uhh, some of the videos are uncanny as hell... It's like watching a real Mandela Catalogue
-# Train is a 4D numpy array for the deepfake discriminator:
-# Number of frames collected - x coord - y coord - rgb values
+# Train is a list containing 3D numpy arrays for the deepfake discriminator:
+# x coord - y coord - rgb values
 
 # TODO:
 #       Maybe refactor the code for getting the label. Don't want to open the json file for every single frame....
@@ -17,7 +17,7 @@ labels = []
 sorted_keys = []
 mp4_files = []
 front_face_detector = cv2.CascadeClassifier("cascade-files/haarcascade_frontalface_alt2.xml")
-RESIZE_SIZE = (320, 320)
+RESIZE_SIZE = (320, 320)  # Resize size for the cropped face
 
 # For profile picture detection (including side faces... We might need it later)...
 # profile_face_detector = cv2.CascadeClassifier("cascade-files/haarcascade_profileface.xml")
@@ -28,6 +28,12 @@ if front_face_detector.empty():
 
 
 def get_files_and_get_meta_file(directory):
+    """
+    Get the file paths for every video of .mp4 format as well as the file path of the metadata.json file.
+    Assume that the metadata file is in the same directory as those mp4 videos
+    :param directory: the directory where all the mp4 files and the metadata.json are
+    :return: None
+    """
     file_paths = []
     meta_files = []
     vid_pattern = r".*\.mp4"
@@ -67,10 +73,10 @@ def get_labels_for_frame(metafile_path, source_video_path):
 
 def capture_video(vid_dest, metafile_path):
     """
-
-    :param vid_dest:
-    :param metafile_path:
-    :return:
+    Go through the video using its path and process every frames in that video
+    :param vid_dest: the video's file path
+    :param metafile_path: the metadata's file path
+    :return: None
     """
     cap = cv2.VideoCapture(vid_dest)
 
@@ -86,7 +92,6 @@ def capture_video(vid_dest, metafile_path):
         # Check to see if frame is found. Otherwise, the video is considered to have gone through all frames.
         # Nice that frame is also a matrix
         if ret is True:
-            # Apparently, this colorspace is damn good for computer vision stuff. YCrBr that is.
             detect_face_and_add_labels(frame, vid_dest, metafile_path)
             # Wait for 25 miliseconds
             if cv2.waitKey(25) & 0xFF == ord('q'):
@@ -104,6 +109,8 @@ def detect_face_and_add_labels(frame, vid_dest, metafile_path):
     :param metafile_path: the path of the metafile
     :return: None
     """
+    # Apparently, this colorspace is damn good for computer vision stuff. YCrBr that is. But it's not working so
+    # a different colorspace is needed.
     # frame_ycc = cv2.cvtColor(frame, cv2.COLOR_BGR2YCR_CB)
     frame_bgr = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     faces = front_face_detector.detectMultiScale(frame_bgr, minNeighbors=6,
@@ -133,6 +140,9 @@ if __name__ == "__main__":
     for mp4_file in mp4_file_paths:
         capture_video(mp4_file, metafile_path)
 
-    # Yeah... There is a metadata.json here... I'm too lazy to get it out, so... Imma use regex...
-    train_np = np.asarray(train)
-    labels_np = np.asarray(labels)
+    # train and labels don't have to be turned into numpy arrays.
+    # train_np = np.asarray(train)
+    # labels_test = np.asarray(labels)
+    # So, just put them here to make it easier to keep track of. train and labels should be filled with data by now.
+    train = train
+    labels = labels
