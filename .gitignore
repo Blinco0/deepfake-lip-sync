@@ -131,6 +131,7 @@ dmypy.json
 # test and train videos....
 train
 test
+train_set
 
 # note
 note.py
