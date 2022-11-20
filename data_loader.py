@@ -75,6 +75,7 @@ def capture_video(vid_dest, meta_dict):
     :return: None
     """
     cap = cv2.VideoCapture(vid_dest)
+    counter = 0
     if os.name == "nt":
         # For Windows
         pattern = r"^.*\\\\(.*\.mp4)$"
@@ -96,20 +97,23 @@ def capture_video(vid_dest, meta_dict):
         # Check to see if frame is found. Otherwise, the video is considered to have gone through all frames.
         # Nice that frame is also a matrix
         if ret is True:
-            detect_face_and_add_labels(frame, label=label)
+            detect_face_and_add_labels(frame, label=label, source_video=source_video, counter=counter)
             # Wait for 25 miliseconds
             if cv2.waitKey(25) & 0xFF == ord('q'):
                 break
         else:
             break
+        counter += 1
 
 
-def detect_face_and_add_labels(frame, label):
+def detect_face_and_add_labels(frame, label, source_video, counter):
     """
     Crop and resize only the frontal face detection the pretrained model uses.
     Will also label the frame as either 0 (FAKE) or 1 (REAL) according to the metadata file.
     :param frame: a frame of the video.
     :param label: the label FAKE or REAL of the video the frame belongs to
+    :param source_video: the name of the video the frame belongs to
+    :param counter: the index of the frame in the video
     :return: None
     """
     # Apparently, this colorspace is damn good for computer vision stuff. YCrBr that is. But it's not working so
@@ -121,15 +125,18 @@ def detect_face_and_add_labels(frame, label):
     # profile_faces = profile_face_detector.detectMultiScale(frame_bgr, minNeighbors=6,
     # minSize=(150, 150), maxSize=(500, 500), scaleFactor=1.1)
     for (x, y, w, h) in faces:
-        frame_bgr = cv2.rectangle(img=frame_bgr, pt1=(x, y), pt2=(x + w, y + h),
-                                  color=(0, 255, 0), thickness=2)
+        frame_bgr = cv2.rectangle(img=frame_bgr, pt1=(x-1, y-1), pt2=(x + w, y + h),
+                                  color=(0, 255, 0), thickness=1)
         cropped = frame_bgr[y:y + h, x:x + w]
         cropped = cv2.resize(cropped, RESIZE_SIZE)
-        cropped_np = np.asarray(cropped)
+        #cropped_np = np.asarray(cropped)
         # Only use the cropped and resized frame to append to the list of frames.
-        train.append(cropped_np)
+        #train.append(cropped_np)
         # Add in the labels to each frame in accordance with the frame's source video label in the metadata.json
-        get_labels_for_frame(label=label)
+        #get_labels_for_frame(label=label)
+        # <REAL or FAKE>_<source_video>_<frame_index>
+        cv2.imwrite(f"train_set/{label.upper()}_{source_video}_{counter}.png", cropped)
+
         # for (x, y, w, h) in profile_faces:
         # frame_bgr = cv2.rectangle(img=frame_bgr, pt1=(x, y), pt2=(x + w, y + h),
         # color=(0, 0, 255), thickness=2)
@@ -153,7 +160,8 @@ def main():
     mp4_file_paths, metafile_path = get_files_and_get_meta_file(directory)
     metafile_path = metafile_path[0]  # There should be only one metafile in the training set
     meta_dictionary = get_meta_dict(metafile_path)
-    for i in range(len(mp4_file_paths)):
+    num_loops = 40
+    for i in range(num_loops):
         start_time = time.time()
         capture_video(mp4_file_paths[i], meta_dictionary)
         print(f"----- Video {mp4_file_paths[i]} done. {i + 1} out of {len(mp4_file_paths)} "
@@ -168,3 +176,6 @@ def main():
     test_set = train[(len(train) // 2):]
     test_label_set = labels[(len(labels) // 2):]
     return train_set, train_label_set, test_set, test_label_set
+
+
+# <REAL or FAKE>_<source_video>_<frame_index>
