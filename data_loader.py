@@ -133,7 +133,7 @@ def detect_face_and_add_labels(frame, label):
         # for (x, y, w, h) in profile_faces:
         # frame_bgr = cv2.rectangle(img=frame_bgr, pt1=(x, y), pt2=(x + w, y + h),
         # color=(0, 0, 255), thickness=2)
-        cv2.imshow("Facial detection cropped", cropped)
+        #cv2.imshow("Facial detection cropped", cropped)  # imshow is the bottleneck...
 
 
 def get_labels_for_frame(label):
@@ -156,7 +156,7 @@ def main():
     for i in range(len(mp4_file_paths)):
         start_time = time.time()
         capture_video(mp4_file_paths[i], meta_dictionary)
-        print(f"----- Video {mp4_file_paths[i]} done. {i + 1} out of {len(mp4_file_paths)}"
+        print(f"----- Video {mp4_file_paths[i]} done. {i + 1} out of {len(mp4_file_paths)} "
               f"{time.time() - start_time} seconds -----")
 
     # train and labels don't have to be turned into numpy arrays.
