@@ -67,19 +67,38 @@ def load_file_from_split_dataset(dataset_path: str):
     """
     train_path = dataset_path+"/train"
     test_path = dataset_path+"/test"
+    counter=0
     
     # Load train data
     for img in os.listdir(train_path+"/real"):
+        counter+=1
+        if counter == 7000:
+            counter = 0
+            break
         append_train(train_path+"/real/" + img, "REAL")
 
+    counter = 0
     for img in os.listdir(train_path+"/fake"):
+        counter+=1
+        if counter == 7000:
+            counter = 0
+            break
         append_train(train_path+"/fake/" + img, "FAKE")
 
+    counter = 0
     # Load test data
     for img in os.listdir(test_path+"/real"):
+        counter+=1
+        if counter == 1000:
+            counter = 0
+            break
         append_test(test_path+"/real/" + img, "REAL")
 
     for img in os.listdir(test_path+"/fake"):
+        counter+=1
+        if counter == 1000:
+            counter = 0
+            break
         append_test(test_path+"/fake/" + img, "FAKE")
 
 #
@@ -147,6 +166,8 @@ y_test = np.asarray(y_test)
 print(f"x_train: {x_train.shape}, x_test {x_test.shape}")
 print(f"y_train: {y_train.shape}, y_test {y_test.shape}")
 
+print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+
 # Imported the ones from MNIST database lol. Uhhh... why does it have such a high score...? Overfitting?
 # Looks like 256x256 is the standard
 model = tf.keras.models.Sequential([
@@ -164,6 +185,7 @@ model.compile(optimizer=tf.keras.optimizers.Adam(),
               loss=tf.keras.losses.SparseCategoricalCrossentropy(), metrics=['accuracy'])
 model.summary()
 
-model.fit(x_train, y_train, epochs=2)
+model.fit(x_train, y_train, epochs=5)
 model.save('saved_models/khoa') # TODO: get dotenv working and make this an env variable
+print("Evaluating model")
 model.evaluate(x_test, y_test)
