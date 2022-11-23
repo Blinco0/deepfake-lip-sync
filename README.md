@@ -14,4 +14,5 @@ deepfake-lip-sync\
 |&emsp;&nbsp;|---valid\
 |&emsp;&nbsp;|&emsp;&nbsp;|---real\
 |&emsp;&nbsp;|&emsp;&nbsp;|---fake\
-Within each of the test, train and validation folders, place the 320x320 images into their respective folders.
+Within each of the test, train and validation folders, place the 320x320 images into their respective folders.\
+The code expects this to be available in project root.
