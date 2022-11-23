@@ -1,4 +1,4 @@
-import data_loader
+import dataset_processors.dfdc_data_preprocessor as dfdc_data_preprocessor
 import numpy as np   # linear algebra
 import cv2
 import matplotlib.pyplot as plt

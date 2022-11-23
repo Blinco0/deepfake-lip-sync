@@ -132,6 +132,7 @@ dmypy.json
 train
 test
 train_set
+dataset
 
 # note
 note.py
