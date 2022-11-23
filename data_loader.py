@@ -156,7 +156,7 @@ def get_labels_for_frame(label):
 
 
 def main():
-    directory = "/home/hnguyen/PycharmProjects/deepfake-lip-sync/train"
+    directory = "train"
     mp4_file_paths, metafile_path = get_files_and_get_meta_file(directory)
     metafile_path = metafile_path[0]  # There should be only one metafile in the training set
     meta_dictionary = get_meta_dict(metafile_path)
@@ -164,18 +164,14 @@ def main():
     for i in range(num_loops):
         start_time = time.time()
         capture_video(mp4_file_paths[i], meta_dictionary)
-        print(f"----- Video {mp4_file_paths[i]} done. {i + 1} out of {len(mp4_file_paths)} "
+        print(f"----- Video {mp4_file_paths[i]} done. {i + 1} out of {num_loops} out of a total of {len(mp4_file_paths)} "
               f"{time.time() - start_time} seconds -----")
 
     # train and labels don't have to be turned into numpy arrays.
     # train_np = np.asarray(train)
     # labels_test = np.asarray(labels)
     #
-    train_set = train[:(len(train) // 2)]
-    train_label_set = labels[:(len(labels) // 2)]
-    test_set = train[(len(train) // 2):]
-    test_label_set = labels[(len(labels) // 2):]
-    return train_set, train_label_set, test_set, test_label_set
+    return
 
 
 # <REAL or FAKE>_<source_video>_<frame_index>
