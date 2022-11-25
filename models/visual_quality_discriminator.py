@@ -182,7 +182,7 @@ model = tf.keras.models.Sequential([
   tf.keras.layers.Dense(10, activation='softmax', name='output')
 ])
 model.compile(optimizer=tf.keras.optimizers.Adam(),
-              loss=tf.keras.losses.SparseCategoricalCrossentropy(), metrics=['accuracy'])
+              loss=tf.keras.losses.SparseCategoricalCrossentropy(), metrics=['accuracy', 'mean_absolute_error'])
 model.summary()
 
 model.fit(x_train, y_train, epochs=5)
