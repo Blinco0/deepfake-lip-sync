@@ -163,6 +163,13 @@ y_train = np.asarray(y_train)
 x_test = np.asarray(x_test)
 y_test = np.asarray(y_test)
 
+def unison_shuffled_copies(a, b):
+    assert len(a) == len(b)
+    p = np.random.permutation(len(a))
+    return a[p], b[p]
+
+x_train, y_train = unison_shuffled_copies(x_train, y_train)
+
 print(f"x_train: {x_train.shape}, x_test {x_test.shape}")
 print(f"y_train: {y_train.shape}, y_test {y_test.shape}")
 
@@ -172,20 +179,22 @@ print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 # Looks like 256x256 is the standard
 model = tf.keras.models.Sequential([
   tf.keras.layers.Conv2D(64, 3, 3, activation='relu', input_shape=(256, 256, 3)),
-  tf.keras.layers.Conv2D(1000, 3, 3, activation='relu'),
-  tf.keras.layers.MaxPool2D(3, 3),
+  tf.keras.layers.MaxPool2D(2, 2),
+  tf.keras.layers.Conv2D(320, 3, 3, activation='relu'),
+  tf.keras.layers.MaxPool2D(2, 2),
+  tf.keras.layers.Conv2D(640, 3, 3, activation='relu'),
+  tf.keras.layers.MaxPool2D(2, 2),
   tf.keras.layers.Flatten(),
-  tf.keras.layers.Dense(1500, activation='relu'),
   tf.keras.layers.Dense(800, activation='relu'),
   tf.keras.layers.Dense(400, activation='relu'),
   tf.keras.layers.Dense(32, activation='relu'),
-  tf.keras.layers.Dense(10, activation='softmax', name='output')
+  tf.keras.layers.Dense(1, activation='sigmoid', name='output')
 ])
 model.compile(optimizer=tf.keras.optimizers.Adam(),
-              loss=tf.keras.losses.SparseCategoricalCrossentropy(), metrics=['accuracy', 'mean_absolute_error'])
+              loss=tf.keras.losses.BinaryCrossentropy(), metrics=['accuracy', 'mean_absolute_error'])
 model.summary()
 
-model.fit(x_train, y_train, epochs=5)
+model.fit(x_train, y_train, epochs=15)
 model.save('saved_models/khoa') # TODO: get dotenv working and make this an env variable
 print("Evaluating model")
 model.evaluate(x_test, y_test)
