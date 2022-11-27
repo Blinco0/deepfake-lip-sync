@@ -133,7 +133,6 @@ train
 test
 train_and_test_set
 dataset
-saved_models
 
 # note
 note.py
