@@ -72,7 +72,7 @@ def load_file_from_split_dataset(dataset_path: str):
     # Load train data
     for img in os.listdir(train_path+"/real"):
         counter+=1
-        if counter == 7000:
+        if counter == 5000:
             counter = 0
             break
         append_train(train_path+"/real/" + img, "REAL")
@@ -80,7 +80,7 @@ def load_file_from_split_dataset(dataset_path: str):
     counter = 0
     for img in os.listdir(train_path+"/fake"):
         counter+=1
-        if counter == 7000:
+        if counter == 5000:
             counter = 0
             break
         append_train(train_path+"/fake/" + img, "FAKE")
@@ -178,23 +178,22 @@ print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
 # Imported the ones from MNIST database lol. Uhhh... why does it have such a high score...? Overfitting?
 # Looks like 256x256 is the standard
 model = tf.keras.models.Sequential([
-  tf.keras.layers.Conv2D(64, 3, 3, activation='relu', input_shape=(256, 256, 3)),
-  tf.keras.layers.MaxPool2D(2, 2),
-  tf.keras.layers.Conv2D(320, 3, 3, activation='relu'),
-  tf.keras.layers.MaxPool2D(2, 2),
-  tf.keras.layers.Conv2D(640, 3, 3, activation='relu'),
-  tf.keras.layers.MaxPool2D(2, 2),
-  tf.keras.layers.Flatten(),
-  tf.keras.layers.Dense(800, activation='relu'),
-  tf.keras.layers.Dense(400, activation='relu'),
-  tf.keras.layers.Dense(32, activation='relu'),
-  tf.keras.layers.Dense(1, activation='sigmoid', name='output')
+    tf.keras.layers.Conv2D(3, 7, 1, activation='relu', input_shape=(256, 256, 3)),
+    tf.keras.layers.Conv2D(32, 5, (1, 2), activation='relu'),
+    tf.keras.layers.Conv2D(64, 5, 2, activation='relu'),
+    tf.keras.layers.Conv2D(128, 5, 2, activation='relu'),
+    tf.keras.layers.Conv2D(256, 3, 2, activation='relu'),
+    tf.keras.layers.Conv2D(512, 3, 2, activation='relu'),
+    tf.keras.layers.Conv2D(512, 3, 1, activation='relu'),
+    tf.keras.layers.MaxPool2D(2, 2),
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(1, activation='sigmoid'),
 ])
 model.compile(optimizer=tf.keras.optimizers.Adam(),
               loss=tf.keras.losses.BinaryCrossentropy(), metrics=['accuracy', 'mean_absolute_error'])
 model.summary()
 
-model.fit(x_train, y_train, epochs=15)
-model.save('saved_models/huy') # TODO: get dotenv working and make this an env variable
+model.fit(x_train, y_train, epochs=7)
+model.save('saved_models/khoa') # TODO: get dotenv working and make this an env variable
 print("Evaluating model")
 model.evaluate(x_test, y_test)
