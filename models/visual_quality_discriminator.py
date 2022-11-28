@@ -176,9 +176,10 @@ def main():
     #         append_test(str(path))
     #     else:
     #         append_train(str(path))
-    
+    return project_path
 
-main()
+
+project_path = main()
 
 x_train = np.asarray(x_train)
 y_train = np.asarray(y_train)
@@ -218,6 +219,7 @@ model.compile(optimizer=tf.keras.optimizers.Adam(),
 model.summary()
 
 model.fit(x_train, y_train, epochs=7)
-model.save('saved_models/khoa') # TODO: get dotenv working and make this an env variable
+save_location = os.path.join(project_path, "saved_models/khoa")
+model.save(save_location)   # TODO: get dotenv working and make this an env variable
 print("Evaluating model")
 model.evaluate(x_test, y_test)
