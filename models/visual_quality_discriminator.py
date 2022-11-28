@@ -195,6 +195,6 @@ model.compile(optimizer=tf.keras.optimizers.Adam(),
 model.summary()
 
 model.fit(x_train, y_train, epochs=15)
-model.save('saved_models/khoa') # TODO: get dotenv working and make this an env variable
+model.save('saved_models/huy') # TODO: get dotenv working and make this an env variable
 print("Evaluating model")
 model.evaluate(x_test, y_test)
