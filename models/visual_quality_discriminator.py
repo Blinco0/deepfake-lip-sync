@@ -6,7 +6,7 @@ import random
 # from pathlib import Path
 import os
 import tensorflow as tf
-
+import re
 # All lists below are supposed to be lists of numpy arrays.
 x_train = []  # train set
 y_train = []  # train label
@@ -17,6 +17,7 @@ y_test = []   # test label
 # Ratio between train and test
 # train_ratio = 3
 # test_ratio = 2
+
 
 def append_train(img_path: str, label: str):
     """
@@ -42,8 +43,9 @@ def append_test(img_path, label: str):
         img_path: the path to the image
         label: the label of the image
     """
+    # Note to self, if you want to run get_face_from_video.py on the same set of videos, delete the entire dataset and
+    # run it again.
     img = cv2.imread(img_path)
-    # img_np = np.asarray(img)
     x_test.append(img)
     # Categorical Data time.
     if label == "FAKE":
@@ -65,41 +67,45 @@ def load_file_from_split_dataset(dataset_path: str):
     Load data into its respective python list
     Assumes a UNIX-based file system
     """
-    train_path = dataset_path+"/train"
-    test_path = dataset_path+"/test"
-    counter=0
+    train_path = os.path.join(dataset_path, "train")
+    test_path = os.path.join(dataset_path, "test")
+    counter = 0
     
     # Load train data
-    for img in os.listdir(train_path+"/real"):
-        counter+=1
+    for img in os.listdir(os.path.join(train_path, "real")):
+        counter += 1
         if counter == 5000:
             counter = 0
             break
-        append_train(train_path+"/real/" + img, "REAL")
+        img_path = os.path.join(train_path, "real", img)
+        append_train(img_path, "REAL")
 
     counter = 0
-    for img in os.listdir(train_path+"/fake"):
-        counter+=1
+    for img in os.listdir(os.path.join(train_path, "fake")):
+        counter += 1
         if counter == 5000:
             counter = 0
             break
-        append_train(train_path+"/fake/" + img, "FAKE")
+        img_path = os.path.join(train_path, "fake", img)
+        append_train(img_path, "FAKE")
 
     counter = 0
     # Load test data
-    for img in os.listdir(test_path+"/real"):
-        counter+=1
+    for img in os.listdir(os.path.join(test_path, "real")):
+        counter += 1
         if counter == 1000:
             counter = 0
             break
-        append_test(test_path+"/real/" + img, "REAL")
+        img_path = os.path.join(test_path, "real", img)
+        append_test(img_path, "REAL")
 
-    for img in os.listdir(test_path+"/fake"):
-        counter+=1
+    for img in os.listdir(os.path.join(test_path, "fake")):
+        counter += 1
         if counter == 1000:
             counter = 0
             break
-        append_test(test_path+"/fake/" + img, "FAKE")
+        img_path = os.path.join(test_path, "fake", img)
+        append_test(img_path, "FAKE")
 
 #
 # Helper function to show a list of images with their relating titles
@@ -141,12 +147,28 @@ def choose_imgs_and_plot():
     show_images(images_2_show, titles_2_show)
 
 
+def get_path(script_path):
+    """
+    Get the path to the current script. Crop it out to get the path of the project.
+    Assume that the project name is deepfake-lip-sync.
+    :return the absolute path of the project.
+    """
+    if os.name == "nt":
+        pattern = r"^(.*\\\\deepfake-lip-sync).*"
+    else:
+        pattern = r"(.*/deepfake-lip-sync).*"
+    match = re.match(pattern=pattern, string=script_path)
+    return match[1]
+
+
 # save_pngs = data_loader.main()
 def main():
     """
     Khoa's new stuff
     """
-    load_file_from_split_dataset("dataset")
+    project_path = get_path(os.path.dirname(__file__))
+    dataset_path = os.path.join(project_path, "dataset")
+    load_file_from_split_dataset(dataset_path)
     # path_list = Path("train_and_test_set").rglob(pattern="*.png")
     # for path in path_list:
     #     roll = random.randint(1, train_ratio + test_ratio)  # inclusive [a, b] for randint
@@ -163,10 +185,12 @@ y_train = np.asarray(y_train)
 x_test = np.asarray(x_test)
 y_test = np.asarray(y_test)
 
+
 def unison_shuffled_copies(a, b):
     assert len(a) == len(b)
     p = np.random.permutation(len(a))
     return a[p], b[p]
+
 
 x_train, y_train = unison_shuffled_copies(x_train, y_train)
 

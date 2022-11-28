@@ -10,10 +10,6 @@ import pathlib
 # Train is a list containing 3D numpy arrays for the deepfake discriminator:
 # x coord - y coord - rgb values
 
-# TODO:
-#      Trying to find out how to make a new directory outside of the one the Python folder is in.
-#      Still trying to think of a way to put the frame into the valid one.
-
 
 train = []
 labels = []
@@ -21,7 +17,7 @@ sorted_keys = []
 mp4_files = []
 
 front_face_detector = cv2.CascadeClassifier(os.path.join(cv2.data.haarcascades, 'haarcascade_frontalface_alt2.xml'))
-RESIZE_SIZE = (320, 320)  # Resize size for the cropped face
+RESIZE_SIZE = (256, 256)  # Resize size for the cropped face
 
 # For profile picture detection (including side faces... We might need it later)...
 # profile_face_detector = cv2.CascadeClassifier("cascade-files/haarcascade_profileface.xml")
