@@ -5,8 +5,11 @@ import random
 import os
 import tensorflow as tf
 from tensorflow import keras
+
 from keras import layers
 from utils import get_face_from_video
+
+
 
 """
     PLACEHOLDER.....
@@ -50,7 +53,6 @@ def make_number_generator():
 model = make_number_generator()
 
 
-# 
 def identity_encoder():
     """A model for receiving the image as a numpy array."""
     model = tf.keras.models.Sequential([
@@ -64,7 +66,8 @@ def identity_encoder():
             tf.keras.layers.MaxPool2D(2, 2),
             tf.keras.layers.Flatten(),
             tf.keras.layers.Dense(1, activation='sigmoid')
-    ])
+    ], name="image")
+    model.summary()
     return model
 
 
@@ -84,9 +87,30 @@ def audio_encoder():
         tf.keras.layers.MaxPool2D(2, 2),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(1, activation='sigmoid')
-    ])
+    ], name="audio")
+    model.summary()
     return model
 
+
+identity_model = identity_encoder()
+audio_model = audio_encoder()
+
+x = layers.Concatenate([identity_model.layers[-1].output, audio_model.layers[-1].output])
+# I just copied it from the Simpson one. The parameters, to be exact. And I have no clue what the parameters are.
+combined_output = layers.Conv2DTranspose(filters=3, kernel_size=[5,5], strides=[1,1], padding="SAME",
+                                            kernel_initializer=tf.truncated_normal_initializer(stddev=WEIGHT_INIT_STDDEV),
+                                            name="logits")(x)
+
+combined_model = keras.Model(inputs=[identity_model.layers[0].input, audio_model.layers[0].input], outputs=[combined_output])
+combined_model.summary()
+
+
+# Definitely liable to change. Generator is a combined model.
+combined_model.compile(
+    optimizer='adam',
+    loss='CategoricalCrossentropy',
+    metrics=['accuracy']
+)
 
 
 def mask_image(img_path: str):
@@ -195,3 +219,6 @@ def train(get_batches, data_shape, checkpoint_to_load=None):
                 g_losses.append(g_loss.eval({input_z: batch_z}))
 
             summarize_epoch(epoch, time.time()-start_time, sess, d_losses, g_losses, input_z, data_shape)
+            
+            
+
