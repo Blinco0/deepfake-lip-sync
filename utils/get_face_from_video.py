@@ -4,6 +4,7 @@ import re
 import json
 import time
 import random
+from ffpyplayer.player import MediaPlayer
 import pathlib
 
 # Uhh, some of the videos are uncanny as hell... It's like watching a real Mandela Catalogue
@@ -104,7 +105,8 @@ def get_meta_dict(metafile_path):
 
 def capture_video(dataset_path, vid_dest, meta_dict):
     """
-    Go through the video using its path and process every frames in that video
+    Go through the video using its path and process every frames in that video.
+    May also extract the audio piece too.
     :param dataset_path: the path to the dataset
     :param meta_dict: the dictionary form of the metadata.json
     :param vid_dest: the video's file path
@@ -112,6 +114,8 @@ def capture_video(dataset_path, vid_dest, meta_dict):
     :return: None
     """
     cap = cv2.VideoCapture(vid_dest)
+    # Start the audio, too.
+    player = MediaPlayer(vid_dest)
     counter = 0
     if os.name == "nt":
         # For Windows
@@ -129,10 +133,11 @@ def capture_video(dataset_path, vid_dest, meta_dict):
         exit(2)
 
     while cap.isOpened():
-        # Get the boolean if frame is found afid the frame itself
+        # Get the boolean if frame is found afid the frame itself. ret is for saying if a frame can be extracted out of the video.
         ret, frame = cap.read()
+        audio_frame, val = player.get_frame()
         # Check to see if frame is found. Otherwise, the video is considered to have gone through all frames.
-        # Nice that frame is also a matrix
+        # Nice that frame is also a matrix.
         if ret is True:
             detect_face_and_add_labels(dataset_path, frame, label=label, source_video=source_video, counter=counter)
             # Wait for 25 miliseconds
@@ -142,6 +147,35 @@ def capture_video(dataset_path, vid_dest, meta_dict):
             break
         counter += 1
 
+"""
+more inefficient method for future reference:
+
+# Import everything needed to edit video clips
+from moviepy.editor import *
+ 
+# loading video dsa gfg intro video
+clip = VideoFileClip("dsa_geek.webm")
+ 
+# clipping of the video
+# getting video for only starting 10 seconds
+clip = clip.subclip(0, 10)
+ 
+# Reduce the audio volume (volume x 0.8)
+clip = clip.volumex(0.8)
+ 
+# Generate a text clip
+txt_clip = TextClip("GeeksforGeeks", fontsize = 70, color = 'white')
+ 
+# setting position of text in the center and duration will be 10 seconds
+txt_clip = txt_clip.set_pos('center').set_duration(10)
+ 
+# Overlay the text clip on the first video clip
+video = CompositeVideoClip([clip, txt_clip])
+ 
+# showing video
+video.ipython_display(width = 280)
+
+"""
 
 def detect_face_and_add_labels(dataset_path, frame, label, source_video, counter):
     """
