@@ -5,6 +5,8 @@ import random
 import os
 import tensorflow as tf
 from tensorflow import keras
+import moviepy.editor as mp
+from moviepy.editor import *
 
 from keras import layers
 from utils import get_face_from_video
@@ -159,7 +161,7 @@ For reference:
 
 """
 
-
+"""
 def model_loss(input_real, input_z, output_channel_dim):
     g_model = generator(input_z, output_channel_dim, True)
 
@@ -220,5 +222,16 @@ def train(get_batches, data_shape, checkpoint_to_load=None):
 
             summarize_epoch(epoch, time.time()-start_time, sess, d_losses, g_losses, input_z, data_shape)
             
-            
+    """
 
+def extract_audio():
+    #
+    clip = mp.VideoFileClip("videopath")
+    
+    # subclip from 0 to 0.033 second time mark.
+    clip = clip.subclip(0,0.033)
+    
+    #
+    clip.audio.write_audiofile(r"result.mp3")
+
+    return clip
