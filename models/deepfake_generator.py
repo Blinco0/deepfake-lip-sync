@@ -136,14 +136,25 @@ def mask_image(img_path: str):
 mask_image("dataset/train/fake/FAKE_apahohbfek.mp4_299.png")
 
 def extract_audio():
+    """
+    
+    """
     project_path = get_face_from_video.get_path(os.path.dirname(__file__))
 
 
     # Get the filepaths and the metadata of it.
     file_paths, meta_paths = get_face_from_video.get_files_and_get_meta_file(project_path)
+    
+    my_clip = VideoFileClip(r"C:\Users\Yxliu\OneDrive\Documents\dfdc_train_part_1\aassnaulhq.mp4")
+
+    my_clip = my_clip.subclip(0,0.033)
+
+    audio = my_clip.audio
+
+    audio.preview()
 
     # 
-        
+
 
 """
 
@@ -223,15 +234,3 @@ def train(get_batches, data_shape, checkpoint_to_load=None):
             summarize_epoch(epoch, time.time()-start_time, sess, d_losses, g_losses, input_z, data_shape)
             
     """
-
-def extract_audio():
-    #
-    clip = mp.VideoFileClip("videopath")
-    
-    # subclip from 0 to 0.033 second time mark.
-    clip = clip.subclip(0,0.033)
-    
-    #
-    clip.audio.write_audiofile(r"result.mp3")
-
-    return clip
