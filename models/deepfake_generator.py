@@ -1,16 +1,23 @@
+import numpy
 import numpy as np  # linear algebra
 import cv2
 import matplotlib.pyplot as plt
 import random
 import os
+import scipy.io.wavfile as wav
 import tensorflow as tf
 from tensorflow import keras
-import moviepy.editor as mp
+from keras import models
 from moviepy.editor import *
+from PIL import Image
+from utils.audio_spectrogram import stft
 
 from keras import layers
 from utils import get_face_from_video
 
+
+# In the future. Maybe try changing the input shape to basically use longer audio files. Right now it can only
+# use the one with the duration of  1/30 second where 30 is the fps of the data used.
 WEIGHT_INIT_STDDEV = 0.02
 
 """
@@ -61,7 +68,8 @@ model = make_number_generator()
 def identity_encoder():
     """A model for receiving the image as a numpy array."""
     model = tf.keras.models.Sequential([
-        tf.keras.layers.Conv2D(3, 7, 1, activation='relu', input_shape=(256, 256, 3)),
+        tf.keras.layers.InputLayer(input_shape=(256, 256, 3), name="image_input"),
+        tf.keras.layers.Conv2D(3, 7, 1, activation='relu'),
         tf.keras.layers.Conv2D(32, 5, (1, 2), activation='relu'),
         tf.keras.layers.Conv2D(64, 5, 2, activation='relu'),
         tf.keras.layers.Conv2D(128, 5, 2, activation='relu'),
@@ -70,7 +78,7 @@ def identity_encoder():
         tf.keras.layers.Conv2D(512, 3, 1, activation='relu'),
         tf.keras.layers.MaxPool2D(2, 2),
         tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(1, activation='sigmoid')
+        tf.keras.layers.Dense(64, activation='sigmoid')
     ], name="image")
     model.summary()
     return model
@@ -82,19 +90,42 @@ def audio_encoder():
     # correct for this value.
     step_size = 34  # Presumably the time each frame occupies. So a frame can last like 1/30th of a second if the video is in 30FPS.
 
-    shape_of_audio_np = (1471, 2)  # That's what scipy does?
-    model = tf.keras.models.Sequential([
-        tf.keras.layers.Conv2D(filters=2, kernel_size=7, groups=1, activation='relu', input_shape=shape_of_audio_np, name="input_audio"),
-        tf.keras.layers.Conv2D(32, 5, (1, 2), activation='relu'),
-        tf.keras.layers.Conv2D(64, 5, 2, activation='relu'),
-        tf.keras.layers.Conv2D(128, 5, 2, activation='relu'),
-        tf.keras.layers.Conv2D(256, 3, 2, activation='relu'),
-        tf.keras.layers.Conv2D(512, 3, 2, activation='relu'),
-        tf.keras.layers.Conv2D(512, 3, 1, activation='relu'),
-        tf.keras.layers.MaxPool2D(2, 2),
-        tf.keras.layers.Flatten(),
-        # tf.keras.layers.Dense(1, activation='sigmoid')
+    shape_of_audio_np = (6, 513, 1)
+
+    num_labels = 64
+    # Instantiate the `tf.keras.layers.Normalization` layer.
+    norm_layer = layers.Normalization()
+    # Fit the state of the layer to the spectrograms
+    # with `Normalization.adapt`.
+    # norm_layer.adapt(data=train_spectrogram_ds.map(map_func=lambda spec, label: spec))  May have to remove this.
+
+    model = models.Sequential([
+        layers.Input(shape=shape_of_audio_np, name="audio_input"),
+        # Downsample the input.
+        layers.Resizing(32, 32),
+        # Normalize.
+        norm_layer,
+        layers.Conv2D(32, 3, activation='relu'),
+        layers.Conv2D(64, 3, activation='relu'),
+        layers.MaxPooling2D(),
+        layers.Dropout(0.25),
+        layers.Flatten(),
+        layers.Dense(128, activation='relu'),
+        layers.Dropout(0.5),
+        layers.Dense(num_labels),
     ], name="audio")
+    # model = tf.keras.models.Sequential([
+    #     tf.keras.layers.Conv2D(3, 7, 1, activation='relu', input_shape=shape_of_audio_np),
+    #     tf.keras.layers.Conv2D(32, 5, (1, 2), activation='relu'),
+    #     tf.keras.layers.Conv2D(64, 5, 2, activation='relu'),
+    #     tf.keras.layers.Conv2D(128, 5, 2, activation='relu'),
+    #     tf.keras.layers.Conv2D(256, 3, 2, activation='relu'),
+    #     tf.keras.layers.Conv2D(512, 3, 2, activation='relu'),
+    #     tf.keras.layers.Conv2D(512, 3, 1, activation='relu'),
+    #     tf.keras.layers.MaxPool2D(2, 2),
+    #     tf.keras.layers.Flatten(),
+    #     tf.keras.layers.Dense(1, activation='sigmoid')
+    # ])
     model.summary()
     return model
 
@@ -102,14 +133,36 @@ def audio_encoder():
 identity_model = identity_encoder()
 audio_model = audio_encoder()
 
-x = layers.Concatenate([identity_model.layers[-1].output, audio_model.layers[-1].output])
+# x = layers.Concatenate([identity_model.layers[-1].output, audio_model.layers[-1].output])
+x = tf.concat([identity_model.layers[-1].output, audio_model.layers[-1].output], 0)
 # I just copied it from the Simpson one. The parameters, to be exact. And I have no clue what the parameters are.
-combined_output = layers.Conv2DTranspose(filters=3, kernel_size=[5, 5], strides=[1, 1], padding="SAME",
-                                         kernel_initializer=tf.keras.initializers.TruncatedNormal(stddev=WEIGHT_INIT_STDDEV),
-                                         name="logits")(x)
+# combined_output = layers.Conv2DTranspose(filters=3, kernel_size=[5, 5], strides=[1, 1], padding="SAME",
+#                                          kernel_initializer=tf.keras.initializers.TruncatedNormal(stddev=WEIGHT_INIT_STDDEV),
+#                                          name="logits")(x)
+combined_output = layers.Dense(16*16*768, use_bias=False)(x)
+combined_output = layers.BatchNormalization()(combined_output)
+combined_output = layers.LeakyReLU()(combined_output)
+
+combined_output = layers.Reshape((16, 16, 768))(combined_output)
+# assert tf.shape(combined_output) == (None, 16, 16, 768)  # Note: None is the batch size
+
+combined_output = layers.Conv2DTranspose(192, (5, 5), strides=(2, 2), padding='same', use_bias=False)(combined_output)
+# assert combined_output.output_shape == (None, 32, 32, 192)
+# assert tf.shape(combined_output) == (None, 32, 32, 192)
+combined_output = layers.BatchNormalization()(combined_output)
+combined_output = layers.LeakyReLU()(combined_output)
+
+combined_output = layers.Conv2DTranspose(12, (5, 5), strides=(4, 4), padding='same', use_bias=False)(combined_output)
+# assert tf.shape(combined_output) == (None, 128, 128, 12)
+combined_output = layers.BatchNormalization()(combined_output)
+combined_output = layers.LeakyReLU()(combined_output)
+
+combined_output = layers.Conv2DTranspose(3, (5, 5), strides=(2, 2), padding='same', use_bias=False, activation='tanh')(combined_output)
+# assert tf.shape(combined_output) == (None, 256, 256, 3)
+
 
 combined_model = keras.Model(inputs=[identity_model.layers[0].input, audio_model.layers[0].input],
-                             outputs=[combined_output])
+                             outputs=[combined_output], name="combined_model")
 combined_model.summary()
 
 # Definitely liable to change. Generator is a combined model.
@@ -123,7 +176,6 @@ combined_model.compile(
 def mask_image(img_path: str):
     # Read an input image as a gray image
     img = cv2.imread(img_path)
-
     # create a mask
     mask = np.zeros(img.shape[:2], np.uint8)
     mask = cv2.rectangle(mask, (0, 0), (255, 127), 255, -1)
@@ -139,7 +191,7 @@ def mask_image(img_path: str):
     cv2.waitKey(0)
 
 
-mask_image("dataset/raw_videos/fake/FAKE_apahohbfek.mp4_299.png")
+# mask_image("/home/hnguyen/PycharmProjects/deepfake-lip-sync/dataset/train/fake/FAKE_aktnlyqpah.mp4_111.png")
 
 
 def extract_audio():
@@ -165,13 +217,21 @@ def extract_audio():
     #
 
 
-
-
 def testing():
-    seed = tf.random.normal([1, 100])
-    generated_img = combined_model(seed, training=False)
+    print("testing")
+    img = Image.open("/home/hnguyen/PycharmProjects/deepfake-lip-sync/dataset/train/fake/FAKE_aahsnkchkz.mp4_125.png")
+    seed_1 = np.asarray(img)
+    filepath = f"/home/hnguyen/PycharmProjects/deepfake-lip-sync/utils/audio/vmigrsncac_audio_132.wav"
+    samplerate, samples = wav.read(filepath)
 
-    plt.imshow(generated_img[0, :, :, 0], cmap='gray')
+    seed_2 = stft(samples, 2 ** 10)
+    seed_2 = np.reshape(seed_2, newshape=(6, 513, 1))
+    generated_img = combined_model({"image_input": np.expand_dims(seed_1, axis=0),
+                                    "audio_input": np.expand_dims(seed_2, axis=0)}, training=False)
+    # print(generated_img.shape)
+    print(generated_img)
+    print("done.")
+    plt.imshow(generated_img[0])
 
 
 testing()

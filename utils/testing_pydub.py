@@ -55,7 +55,7 @@ def turn_mp3_to_numpy(file_path):
 
 if __name__ == "__main__":
     extract_audio()
-    example_audio_numpy = turn_mp3_to_numpy("vmigrsncac_audio_237.wav")
+    example_audio_numpy = turn_mp3_to_numpy("audio/vmigrsncac_audio_237.wav")
     print(example_audio_numpy)
     # for i in range(300):
     #     example_audio_numpy = turn_mp3_to_numpy(f"vmigrsncac_audio_{i+1}.wav")

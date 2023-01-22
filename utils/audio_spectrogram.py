@@ -85,4 +85,16 @@ def plotstft(audiopath, binsize=2**10, plotpath=None, colormap="jet"):
 
     return ims
 
-ims = plotstft(filepath)
+
+# for i in range(300):
+#     filepath = f"audio/vmigrsncac_audio_{i+1}.wav"
+#     sr_audio, sample_audio = wav.read(filename=filepath)
+#     spectro_data = stft(sample_audio, frameSize=2**10)
+#     print(spectro_data.shape)
+
+if __name__ == "__main__":
+    filepath = f"audio/vmigrsncac_audio_100.wav"
+
+    ims = plotstft(filepath)
+    ims = np.reshape(ims, newshape=(6, 513, 1))
+    print(ims.shape)
