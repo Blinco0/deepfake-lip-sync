@@ -28,6 +28,8 @@ from utils import get_face_from_video
     
     and then we use the generator 
 """
+
+
 def make_number_generator():
     model = tf.keras.Sequential()
     model.add(layers.Dense(7*7*256, use_bias=False, input_shape=(100,)))
@@ -51,6 +53,7 @@ def make_number_generator():
     assert model.output_shape == (None, 28, 28, 1)
 
     return model
+
 
 model = make_number_generator()
 
@@ -133,25 +136,32 @@ def mask_image(img_path: str):
     cv2.imwrite("masked", masked_img)
     cv2.waitKey(0)
 
-mask_image("dataset/train/fake/FAKE_apahohbfek.mp4_299.png")
+
+mask_image("dataset/raw_videos/fake/FAKE_apahohbfek.mp4_299.png")
+
 
 def extract_audio():
     """
     
     """
     project_path = get_face_from_video.get_path(os.path.dirname(__file__))
-
+    ds_path = os.path.join(project_path, "dataset")
+    raw_data_path = os.path.join(project_path, "raw_videos")
+    print(project_path, ds_path, raw_data_path)
 
     # Get the filepaths and the metadata of it.
-    file_paths, meta_paths = get_face_from_video.get_files_and_get_meta_file(project_path)
-    
+    file_paths, meta_paths = get_face_from_video.get_files_and_get_meta_file(raw_data_path)
+
     my_clip = VideoFileClip(r"C:\Users\Yxliu\OneDrive\Documents\dfdc_train_part_1\aassnaulhq.mp4")
 
-    my_clip = my_clip.subclip(0,0.033)
+    frame_time = 1 / my_clip.fps
+    for i in range(0, int(my_clip.duration), frame_time):
+        my_clip = my_clip.subclip(i, i + frame_time)
+        audio = my_clip.audio
+        audio.preview()
 
-    audio = my_clip.audio
 
-    audio.preview()
+
 
     # 
 
@@ -202,12 +212,12 @@ def model_optimizers(d_loss, g_loss):
     gen_updates = [op for op in update_ops if op.name.startswith('generator')]
     
     with tf.control_dependencies(gen_updates):
-        d_train_opt = tf.train.AdamOptimizer(learning_rate=LR_D, beta1=BETA1).minimize(d_loss, var_list=d_vars)
-        g_train_opt = tf.train.AdamOptimizer(learning_rate=LR_G, beta1=BETA1).minimize(g_loss, var_list=g_vars)  
+        d_train_opt = tf.raw_videos.AdamOptimizer(learning_rate=LR_D, beta1=BETA1).minimize(d_loss, var_list=d_vars)
+        g_train_opt = tf.raw_videos.AdamOptimizer(learning_rate=LR_G, beta1=BETA1).minimize(g_loss, var_list=g_vars)  
     return d_train_opt, g_train_opt
 
 
-def train(get_batches, data_shape, checkpoint_to_load=None):
+def raw_videos(get_batches, data_shape, checkpoint_to_load=None):
     input_images, input_z, lr_G, lr_D = model_inputs(data_shape[1:], NOISE_SIZE)
     d_loss, g_loss = model_loss(input_images, input_z, data_shape[3])
     d_opt, g_opt = model_optimizers(d_loss, g_loss)

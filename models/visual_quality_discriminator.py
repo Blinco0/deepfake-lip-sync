@@ -14,8 +14,8 @@ import re
 #       So sth like model5 is the 5th and latest model in a saved_models folder that has 5 models in there already.
 
 # All lists below are supposed to be lists of numpy arrays.
-x_train = []  # train set
-y_train = []  # train label
+x_train = []  # raw_videos set
+y_train = []  # raw_videos label
 
 x_test = []   # test set
 y_test = []   # test label
@@ -23,7 +23,7 @@ y_test = []   # test label
 
 def append_train(img_path: str, label: str):
     """
-    Add image and label to train lists
+    Add image and label to raw_videos lists
     Parameters:
         img_path: the path to the image
         label: the label of the image
@@ -63,17 +63,17 @@ def load_file_from_split_dataset(dataset_path: str):
     |---test
     |   |---real
     |   |---fake
-    |---train
+    |---raw_videos
     |   |---real
     |   |---fake
     Load data into its respective python list
     Assumes a UNIX-based file system
     """
-    train_path = os.path.join(dataset_path, "train")
+    train_path = os.path.join(dataset_path, "raw_videos")
     test_path = os.path.join(dataset_path, "test")
     counter = 0
     
-    # Load train data
+    # Load raw_videos data
     for img in os.listdir(os.path.join(train_path, "real")):
         counter += 1
         if counter == 5000:

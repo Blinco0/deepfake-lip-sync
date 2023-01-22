@@ -7,7 +7,7 @@ import random
 from ffpyplayer.player import MediaPlayer
 import pathlib
 
-# Uhh, some of the videos are uncanny as hell... It's like watching a real Mandela Catalogue
+# Uhh, some videos are uncanny as hell... It's like watching a real Mandela Catalogue
 # Train is a list containing 3D numpy arrays for the deepfake discriminator:
 # x coord - y coord - rgb values
 
@@ -23,7 +23,7 @@ RESIZE_SIZE = (256, 256)  # Resize size for the cropped face
 # For profile picture detection (including side faces... We might need it later)...
 # profile_face_detector = cv2.CascadeClassifier("cascade-files/haarcascade_profileface.xml")
 
-# Ratio between train and test
+# Ratio between raw_videos and test
 train_ratio = 3
 test_ratio = 2
 valid_ratio = 1
@@ -40,7 +40,7 @@ def detect_if_structure_exists(dataset_path):
     :return: false
     """
     first_levels = [dataset_path]
-    second_levels = ["train", "test", "valid"]
+    second_levels = ["raw_videos", "test", "valid"]
     third_levels = ["real", "fake"]
 
     for level in first_levels:
@@ -90,7 +90,7 @@ def get_files_and_get_meta_file(directory):
                 filepath = os.path.join(directory, filename)
                 sorted_keys.append(filename)
                 file_paths.append(filepath)
-                print(filepath)
+                #print(filepath)  # Optional. Uncomment if you want to check if the output is printed correctly.
             elif re.match(pattern=metafile_pattern, string=filename):
                 metafile_path = os.path.join(directory, filename)
                 meta_files.append(metafile_path)
@@ -135,7 +135,7 @@ def capture_video(dataset_path, vid_dest, meta_dict):
     while cap.isOpened():
         # Get the boolean if frame is found afid the frame itself. ret is for saying if a frame can be extracted out of the video.
         ret, frame = cap.read()
-        audio_frame, val = player.get_frame()
+        # audio_frame, val = player.get_frame()
         # Check to see if frame is found. Otherwise, the video is considered to have gone through all frames.
         # Nice that frame is also a matrix.
         if ret is True:
@@ -177,6 +177,7 @@ video.ipython_display(width = 280)
 
 """
 
+
 def detect_face_and_add_labels(dataset_path, frame, label, source_video, counter):
     """
     Crop and resize only the frontal face detection the pretrained model uses.
@@ -203,12 +204,12 @@ def detect_face_and_add_labels(dataset_path, frame, label, source_video, counter
         cropped = cv2.resize(cropped, RESIZE_SIZE)
         path = ""
         # <REAL or FAKE>_<source_video>_<frame_index>
-        # Roll to see if it goes to the test or the train
+        # Roll to see if it goes to the test or the raw_videos
         roll = random.randint(1, train_ratio + test_ratio + valid_ratio)  # inclusive [a, b] for randint
         if roll <= test_ratio:
             dest = f"test"
         elif roll <= train_ratio + test_ratio:
-            dest = f"train"
+            dest = f"raw_videos"
             # what about valid?
         else:
             dest = f"valid"
@@ -224,7 +225,7 @@ def detect_face_and_add_labels(dataset_path, frame, label, source_video, counter
 def main():
     project_path = get_path(os.path.dirname(__file__))
     ds_path = os.path.join(project_path, "dataset")
-    raw_data_path = os.path.join(project_path, "train")
+    raw_data_path = os.path.join(project_path, "raw_videos")
 
     detect_if_structure_exists(ds_path)
     mp4_file_paths, metafile_path = get_files_and_get_meta_file(raw_data_path)
@@ -239,4 +240,5 @@ def main():
     return
 
 
-main()
+if __name__ == "__main__":
+    main()
