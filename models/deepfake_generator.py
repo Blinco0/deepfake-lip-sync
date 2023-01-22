@@ -1,4 +1,4 @@
-import numpy as np   # linear algebra
+import numpy as np  # linear algebra
 import cv2
 import matplotlib.pyplot as plt
 import random
@@ -11,7 +11,7 @@ from moviepy.editor import *
 from keras import layers
 from utils import get_face_from_video
 
-
+WEIGHT_INIT_STDDEV = 0.02
 
 """
     PLACEHOLDER.....
@@ -32,9 +32,9 @@ from utils import get_face_from_video
 
 def make_number_generator():
     model = tf.keras.Sequential()
-    model.add(layers.Dense(7*7*256, use_bias=False, input_shape=(100,)))
+    model.add(layers.Dense(7 * 7 * 256, use_bias=False, input_shape=(100,)))
     model.add(layers.BatchNormalization())
-    model.add(layers.LeakyReLU()) 
+    model.add(layers.LeakyReLU())
 
     model.add(layers.Reshape((7, 7, 256)))
     assert model.output_shape == (None, 7, 7, 256)  # Note: None is the batch size
@@ -42,12 +42,12 @@ def make_number_generator():
     model.add(layers.Conv2DTranspose(128, (5, 5), strides=(1, 1), padding='same', use_bias=False))
     assert model.output_shape == (None, 7, 7, 128)
     model.add(layers.BatchNormalization())
-    model.add(layers.LeakyReLU()) 
+    model.add(layers.LeakyReLU())
 
     model.add(layers.Conv2DTranspose(64, (5, 5), strides=(2, 2), padding='same', use_bias=False))
     assert model.output_shape == (None, 14, 14, 64)
     model.add(layers.BatchNormalization())
-    model.add(layers.LeakyReLU()) 
+    model.add(layers.LeakyReLU())
 
     model.add(layers.Conv2DTranspose(1, (5, 5), strides=(2, 2), padding='same', use_bias=False, activation='tanh'))
     assert model.output_shape == (None, 28, 28, 1)
@@ -61,28 +61,7 @@ model = make_number_generator()
 def identity_encoder():
     """A model for receiving the image as a numpy array."""
     model = tf.keras.models.Sequential([
-            tf.keras.layers.Conv2D(3, 7, 1, activation='relu', input_shape=(256, 256, 3)),
-            tf.keras.layers.Conv2D(32, 5, (1, 2), activation='relu'),
-            tf.keras.layers.Conv2D(64, 5, 2, activation='relu'),
-            tf.keras.layers.Conv2D(128, 5, 2, activation='relu'),
-            tf.keras.layers.Conv2D(256, 3, 2, activation='relu'),
-            tf.keras.layers.Conv2D(512, 3, 2, activation='relu'),
-            tf.keras.layers.Conv2D(512, 3, 1, activation='relu'),
-            tf.keras.layers.MaxPool2D(2, 2),
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(1, activation='sigmoid')
-    ], name="image")
-    model.summary()
-    return model
-
-
-def audio_encoder():
-    """A model for receiving the audio as a numpy array."""
-    loudness = 80  # Probably the decibel of the sound. Not sure how it's like that. tbf, I actually have no clue if the variable name is c
-                    # correct for this value.
-    step_size = 34 # Presumably the time each frame occupies. So a frame can last like 1/30th of a second if the video is in 30FPS.
-    model = tf.keras.models.Sequential([
-        tf.keras.layers.Conv2D(3, 7, 1, activation='relu', input_shape=(80, step_size, 1), name="input_audio"),
+        tf.keras.layers.Conv2D(3, 7, 1, activation='relu', input_shape=(256, 256, 3)),
         tf.keras.layers.Conv2D(32, 5, (1, 2), activation='relu'),
         tf.keras.layers.Conv2D(64, 5, 2, activation='relu'),
         tf.keras.layers.Conv2D(128, 5, 2, activation='relu'),
@@ -92,6 +71,29 @@ def audio_encoder():
         tf.keras.layers.MaxPool2D(2, 2),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(1, activation='sigmoid')
+    ], name="image")
+    model.summary()
+    return model
+
+
+def audio_encoder():
+    """A model for receiving the audio as a numpy array."""
+    loudness = 80  # Probably the decibel of the sound. Not sure how it's like that. tbf, I actually have no clue if the variable name is c
+    # correct for this value.
+    step_size = 34  # Presumably the time each frame occupies. So a frame can last like 1/30th of a second if the video is in 30FPS.
+
+    shape_of_audio_np = (1471, 2)  # That's what scipy does?
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Conv2D(filters=2, kernel_size=7, groups=1, activation='relu', input_shape=shape_of_audio_np, name="input_audio"),
+        tf.keras.layers.Conv2D(32, 5, (1, 2), activation='relu'),
+        tf.keras.layers.Conv2D(64, 5, 2, activation='relu'),
+        tf.keras.layers.Conv2D(128, 5, 2, activation='relu'),
+        tf.keras.layers.Conv2D(256, 3, 2, activation='relu'),
+        tf.keras.layers.Conv2D(512, 3, 2, activation='relu'),
+        tf.keras.layers.Conv2D(512, 3, 1, activation='relu'),
+        tf.keras.layers.MaxPool2D(2, 2),
+        tf.keras.layers.Flatten(),
+        # tf.keras.layers.Dense(1, activation='sigmoid')
     ], name="audio")
     model.summary()
     return model
@@ -102,13 +104,13 @@ audio_model = audio_encoder()
 
 x = layers.Concatenate([identity_model.layers[-1].output, audio_model.layers[-1].output])
 # I just copied it from the Simpson one. The parameters, to be exact. And I have no clue what the parameters are.
-combined_output = layers.Conv2DTranspose(filters=3, kernel_size=[5,5], strides=[1,1], padding="SAME",
-                                            kernel_initializer=tf.truncated_normal_initializer(stddev=WEIGHT_INIT_STDDEV),
-                                            name="logits")(x)
+combined_output = layers.Conv2DTranspose(filters=3, kernel_size=[5, 5], strides=[1, 1], padding="SAME",
+                                         kernel_initializer=tf.keras.initializers.TruncatedNormal(stddev=WEIGHT_INIT_STDDEV),
+                                         name="logits")(x)
 
-combined_model = keras.Model(inputs=[identity_model.layers[0].input, audio_model.layers[0].input], outputs=[combined_output])
+combined_model = keras.Model(inputs=[identity_model.layers[0].input, audio_model.layers[0].input],
+                             outputs=[combined_output])
 combined_model.summary()
-
 
 # Definitely liable to change. Generator is a combined model.
 combined_model.compile(
@@ -124,14 +126,14 @@ def mask_image(img_path: str):
 
     # create a mask
     mask = np.zeros(img.shape[:2], np.uint8)
-    mask = cv2.rectangle(mask, (0,0), (255,127), 255, -1)
+    mask = cv2.rectangle(mask, (0, 0), (255, 127), 255, -1)
 
     # compute the bitwise AND using the mask
-    masked_img = cv2.bitwise_and(img, img, mask = mask)
+    masked_img = cv2.bitwise_and(img, img, mask=mask)
 
     # display the mask, and the output image
-    cv2.imshow('Masked Image',masked_img)
-    
+    cv2.imshow('Masked Image', masked_img)
+
     # save the masked image.
     cv2.imwrite("masked", masked_img)
     cv2.waitKey(0)
@@ -160,10 +162,7 @@ def extract_audio():
         audio = my_clip.audio
         audio.preview()
 
-
-
-
-    # 
+    #
 
 
 """
@@ -244,3 +243,13 @@ def raw_videos(get_batches, data_shape, checkpoint_to_load=None):
             summarize_epoch(epoch, time.time()-start_time, sess, d_losses, g_losses, input_z, data_shape)
             
     """
+
+
+def testing():
+    seed = tf.random.normal([1, 100])
+    generated_img = combined_model(seed, training=False)
+
+    plt.imshow(generated_img[0, :, :, 0], cmap='gray')
+
+
+testing()
