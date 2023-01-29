@@ -121,7 +121,7 @@ def capture_video(dataset_path: str, vid_dest: str, meta_dict: dict):
         # Nice that frame is also a matrix.
         if ret is True:
             detect_face_add_labels_get_audio(frame=frame, audio=audio, source_video_name=source_video, counter=counter,
-                                       frame_time=frame_time, dataset_path=dataset_path, label=label, )
+                                             frame_time=frame_time, dataset_path=dataset_path, label=label, )
             # Wait for 25 miliseconds
             if cv2.waitKey(25) & 0xFF == ord('q'):
                 break
