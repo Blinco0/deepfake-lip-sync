@@ -1,6 +1,6 @@
 import os
 import time
-import ww as tf
+import tensorflow as tf
 import numpy as np
 from glob import glob
 import datetime
