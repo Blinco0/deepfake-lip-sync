@@ -52,6 +52,14 @@ def logscale_spec(spec, sr=44100, factor=20.):
     return newspec, freqs
 
 
+def stft_np(audiopath, binsize=2 ** 10):
+    samplerate, samples = wav.read(audiopath)
+    s = stft(samples, binsize)
+    sshow, freq = logscale_spec(s, factor=1.0, sr=samplerate)
+    ims = 20. * np.log10(np.abs(sshow) / 10e-6)  # amplitude to decibel
+    return ims
+
+
 def plotstft(audiopath, binsize=2 ** 10, plotpath=None, colormap="jet"):
     """ plot spectrogram"""
     samplerate, samples = wav.read(audiopath)
@@ -99,7 +107,9 @@ def plotstft(audiopath, binsize=2 ** 10, plotpath=None, colormap="jet"):
 
 if __name__ == "__main__":
     filepath = f"audio/vmigrsncac_audio_100.wav"
+    ims = stft_np(filepath)
+    # ims = np.reshape(ims, newshape=(6, 513, 1))
 
-    ims = plotstft(filepath)
-    ims = np.reshape(ims, newshape=(6, 513, 1))
+    ims_plot = plotstft(filepath)
+
     print(ims.shape)

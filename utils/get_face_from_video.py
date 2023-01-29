@@ -4,7 +4,9 @@ import re
 import time
 
 import cv2
+import numpy as np
 from moviepy.editor import *
+from utils.audio_spectrogram import stft_np
 
 
 # Uhh, some videos are uncanny as hell... It's like watching a real Mandela Catalogue
@@ -89,7 +91,7 @@ def capture_video(dataset_path: str, vid_dest: str, meta_dict: dict):
     :param meta_dict: the dictionary form of the metadata.json
     :param vid_dest: the video's file path
     :param meta_dict: the dictionary form of the metadata.json
-    :return: None
+    :return: The numpy representation of all face frames and the corresponding audios
     """
     cap = cv2.VideoCapture(vid_dest)
     # Start the audio, too.
@@ -112,6 +114,8 @@ def capture_video(dataset_path: str, vid_dest: str, meta_dict: dict):
         print("Error opening video stream or file")
         exit(2)
 
+    faces = []
+    audios = []  # Heh, pun
     while cap.isOpened():
         # Get the boolean ret if face is found from the frame itself.
         # ret is for saying if a frame can be extracted out of the video.
@@ -120,8 +124,15 @@ def capture_video(dataset_path: str, vid_dest: str, meta_dict: dict):
         # Check to see if frame is found. Otherwise, the video is considered to have gone through all frames.
         # Nice that frame is also a matrix.
         if ret is True:
-            detect_face_add_labels_get_audio(frame=frame, audio=audio, source_video_name=source_video, counter=counter,
-                                             frame_time=frame_time, dataset_path=dataset_path, label=label, )
+            results = detect_face_add_labels_get_audio(frame=frame, audio=audio,
+                                                       source_video_name=source_video, counter=counter,
+                                                       frame_time=frame_time, dataset_path=dataset_path,
+                                                       label=label)
+            if results is not None:
+                face = results[0]
+                audio_np = results[1]
+                faces.append(face)
+                audios.append(audio_np)
             # Wait for 25 miliseconds
             if cv2.waitKey(25) & 0xFF == ord('q'):
                 break
@@ -129,6 +140,9 @@ def capture_video(dataset_path: str, vid_dest: str, meta_dict: dict):
             break
         counter += 1
     # print(counter)  # Guaranteed 300. Will delete it later.
+    faces = np.asarray(faces)
+    audios = np.asarray(audios)
+    return faces, audios
 
 
 def detect_face_add_labels_get_audio(frame, audio, source_video_name: str,
@@ -144,7 +158,8 @@ def detect_face_add_labels_get_audio(frame, audio, source_video_name: str,
     :param counter: the index of the frame in the video, very useful for extracting audio out of.
     :param audio: the audio part of the source video extracted from the video
     :param frame_time: The number of time of a frame. Got by dividing 1 / fps
-    :return: None
+    :return: the numpy array representation of the cropped face as well as its corresponding audio's numpy array.
+             None if no face is found
     """
     # Apparently, this colorspace is damn good for computer vision stuff. YCrBr that is. But it's not working so
     # a different colorspace is needed. Scratch that, we need to use the RGB one.
@@ -158,30 +173,35 @@ def detect_face_add_labels_get_audio(frame, audio, source_video_name: str,
     # Get the audio subclip and save it!
     start = counter * frame_time
     frame_audio = audio.subclip(start, start + frame_time)
+    if faces is not None:
+        for (x, y, w, h) in faces:
+            # Cropping only the faces. Please read documentation for it....
+            frame_bgr = cv2.rectangle(img=frame_bgr, pt1=(x - 1, y - 1), pt2=(x + w, y + h),
+                                      color=(0, 255, 0), thickness=1)
+            cropped = frame_bgr[y:y + h, x:x + w]
+            cropped = cv2.resize(cropped, RESIZE_SIZE)
+            # <REAL or FAKE>_<source_video>_<frame_index>
+            # Roll to see if it goes to the test or the raw_videos
+            roll = random.randint(1, train_ratio + test_ratio + valid_ratio)  # inclusive [a, b] for randint
+            if roll <= test_ratio:
+                dest = f"test"
+            elif roll <= train_ratio + test_ratio:
+                dest = f"raw_videos"
+                # what about valid?
+            else:
+                dest = f"valid"
+            path = os.path.join(dataset_path, dest, label.lower(), f"{label.upper()}_{source_video_name}_{counter}.png")
+            audio_path = os.path.join(dataset_path, dest, label.lower(),
+                                      f"{label.upper()}_{source_video_name}_{counter}.wav")
 
-    for (x, y, w, h) in faces:
-        # Cropping only the faces. Please read documentation for it....
-        frame_bgr = cv2.rectangle(img=frame_bgr, pt1=(x - 1, y - 1), pt2=(x + w, y + h),
-                                  color=(0, 255, 0), thickness=1)
-        cropped = frame_bgr[y:y + h, x:x + w]
-        cropped = cv2.resize(cropped, RESIZE_SIZE)
-        # <REAL or FAKE>_<source_video>_<frame_index>
-        # Roll to see if it goes to the test or the raw_videos
-        roll = random.randint(1, train_ratio + test_ratio + valid_ratio)  # inclusive [a, b] for randint
-        if roll <= test_ratio:
-            dest = f"test"
-        elif roll <= train_ratio + test_ratio:
-            dest = f"raw_videos"
-            # what about valid?
+            # Save frames and audio
+            cv2.imwrite(path, cropped)
+            frame_audio.write_audiofile(filename=audio_path, codec="pcm_s16le", verbose=False, logger=None)
+            stft_ver = stft_np(audio_path)
+            return cropped, stft_ver
         else:
-            dest = f"valid"
-        path = os.path.join(dataset_path, dest, label.lower(), f"{label.upper()}_{source_video_name}_{counter}.png")
-        audio_path = os.path.join(dataset_path, dest, label.lower(),
-                                  f"{label.upper()}_{source_video_name}_{counter}.wav")
-
-        cv2.imwrite(path, cropped)
-        frame_audio.write_audiofile(filename=audio_path, codec="pcm_s16le", verbose=False, logger=None)
-
+            return None
+        # return the cropped image and audio
         # for (x, y, w, h) in profile_faces:
         # frame_bgr = cv2.rectangle(img=frame_bgr, pt1=(x, y), pt2=(x + w, y + h),
         # color=(0, 0, 255), thickness=2)
@@ -197,13 +217,17 @@ def main():
     mp4_file_paths, metafile_path = get_files_and_get_meta_file(raw_data_path)
     metafile_path = metafile_path[0]  # There should be only one metafile in the training set
     meta_dictionary = get_meta_dict(metafile_path)
-    num_loops = 40
-    for i in range(num_loops):
+
+    num_videos = 40  # Number of videos.
+
+    for i in range(num_videos):
         start_time = time.time()
-        capture_video(ds_path, mp4_file_paths[i], meta_dictionary)
+        # Get the numpy representations of faces and audios corresponding to it for each video.
+        faces, audios = capture_video(ds_path, mp4_file_paths[i], meta_dictionary)
         print(
-            f"----- Video {mp4_file_paths[i]} done. {i + 1} out of {num_loops} out of a total of {len(mp4_file_paths)}"
+            f"----- Video {mp4_file_paths[i]} done. {i + 1} out of {num_videos} out of a total of {len(mp4_file_paths)}"
             f". {time.time() - start_time} seconds -----")
+        print(f"faces: {faces.shape}, audios: {audios.shape}")
     return
 
 
