@@ -258,7 +258,7 @@ def train():
         os.remove(os.path.join(save_checkpoint_path, file))
 
 
-model = load_model()
+# model = load_model()
 if __name__ == "__main__":
     save_checkpoint_path = "saved_checkpoints"
     saved_model_path = os.path.join(project_path, "saved_models", "huy")
