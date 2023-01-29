@@ -5,7 +5,6 @@ import json
 import time
 import random
 from ffpyplayer.player import MediaPlayer
-import pathlib
 
 # Uhh, some videos are uncanny as hell... It's like watching a real Mandela Catalogue
 # Train is a list containing 3D numpy arrays for the deepfake discriminator:
@@ -115,7 +114,7 @@ def capture_video(dataset_path, vid_dest, meta_dict):
     """
     cap = cv2.VideoCapture(vid_dest)
     # Start the audio, too.
-    player = MediaPlayer(vid_dest)
+    # player = MediaPlayer(vid_dest)
     counter = 0
     if os.name == "nt":
         # For Windows
@@ -146,36 +145,6 @@ def capture_video(dataset_path, vid_dest, meta_dict):
         else:
             break
         counter += 1
-
-"""
-more inefficient method for future reference:
-
-# Import everything needed to edit video clips
-from moviepy.editor import *
- 
-# loading video dsa gfg intro video
-clip = VideoFileClip("dsa_geek.webm")
- 
-# clipping of the video
-# getting video for only starting 10 seconds
-clip = clip.subclip(0, 10)
- 
-# Reduce the audio volume (volume x 0.8)
-clip = clip.volumex(0.8)
- 
-# Generate a text clip
-txt_clip = TextClip("GeeksforGeeks", fontsize = 70, color = 'white')
- 
-# setting position of text in the center and duration will be 10 seconds
-txt_clip = txt_clip.set_pos('center').set_duration(10)
- 
-# Overlay the text clip on the first video clip
-video = CompositeVideoClip([clip, txt_clip])
- 
-# showing video
-video.ipython_display(width = 280)
-
-"""
 
 
 def detect_face_and_add_labels(dataset_path, frame, label, source_video, counter):
@@ -241,4 +210,20 @@ def main():
 
 
 if __name__ == "__main__":
+    train = []
+    labels = []
+    sorted_keys = []
+    mp4_files = []
+
+    front_face_detector = cv2.CascadeClassifier(os.path.join(cv2.data.haarcascades, 'haarcascade_frontalface_alt2.xml'))
+    RESIZE_SIZE = (256, 256)  # Resize size for the cropped face
+
+    # For profile picture detection (including side faces... We might need it later)...
+    # profile_face_detector = cv2.CascadeClassifier("cascade-files/haarcascade_profileface.xml")
+
+    # Ratio between raw_videos and test
+    train_ratio = 3
+    test_ratio = 2
+    valid_ratio = 1
+
     main()
