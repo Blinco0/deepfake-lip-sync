@@ -143,6 +143,8 @@ cascade-files
 utils/testing_pydub.py
 utils/*.wav
 utils/testing_spectrogram.py
+utils/audio
 
 dataset/
 image_and_text_classifier.png
+
