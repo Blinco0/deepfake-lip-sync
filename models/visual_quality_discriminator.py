@@ -1,3 +1,7 @@
+"""
+Authors: Huy Nguyen, Yu Xuan Liu
+Maintainer: Khoa Nguyen
+"""
 # import utils.get_face_from_video as get_face_from_video
 import numpy as np   # linear algebra
 import cv2
@@ -13,6 +17,35 @@ import re
 #       and grab the latest model based on how many models are there in saved_models.
 #       So sth like model5 is the 5th and latest model in a saved_models folder that has 5 models in there already.
 
+"""
+Visual Quality Discriminator Model Definition
+Used to discriminate (hah, get it?) between real and fake images
+Meant to be used as the discriminator
+"""
+
+def quality_discriminator(train=True):
+    """
+    The quality discriminator in all of its glory
+    """
+    model = tf.keras.models.Sequential([
+        tf.keras.layers.Conv2D(3, 7, 1, activation='relu', input_shape=(256, 256, 3)),
+        tf.keras.layers.Conv2D(32, 5, (1, 2), activation='relu'),
+        tf.keras.layers.Conv2D(64, 5, 2, activation='relu'),
+        tf.keras.layers.Conv2D(128, 5, 2, activation='relu'),
+        tf.keras.layers.Conv2D(256, 3, 2, activation='relu'),
+        tf.keras.layers.Conv2D(512, 3, 2, activation='relu'),
+        tf.keras.layers.Conv2D(512, 3, 1, activation='relu'),
+        tf.keras.layers.MaxPool2D(2, 2),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ], name="quality_discriminator")
+    model.summary()
+    return model
+
+"""
+Everything from here onwards is for testing purposes only
+"""
+
 # All lists below are supposed to be lists of numpy arrays.
 x_train = []  # raw_videos set
 y_train = []  # raw_videos label
@@ -20,8 +53,7 @@ y_train = []  # raw_videos label
 x_test = []   # test set
 y_test = []   # test label
 
-
-def append_train(img_path: str, label: str):
+def append_train(x_train, y_train, img_path: str, label: str):
     """
     Add image and label to raw_videos lists
     Parameters:
@@ -38,7 +70,7 @@ def append_train(img_path: str, label: str):
         y_train.append(1)
 
 
-def append_test(img_path, label: str):
+def append_test(x_test, y_test, img_path, label: str):
     """
     Add image and label to test lists
     Parameters:
@@ -56,38 +88,44 @@ def append_test(img_path, label: str):
         y_test.append(1)
 
 
-def load_file_from_split_dataset(dataset_path: str):
+def load_dataset(data_path: str):
     """
     Given a path with the structure
     dataset
     |---test
     |   |---real
     |   |---fake
-    |---raw_videos
+    |---train
     |   |---real
     |   |---fake
     Load data into its respective python list
     Assumes a UNIX-based file system
     """
-    train_path = os.path.join(dataset_path, "raw_videos")
-    test_path = os.path.join(dataset_path, "test")
+    x_train = []
+    y_train = []
+
+    x_test = []
+    y_test = []
+
+    train_path = os.path.join(data_path, "train")
+    test_path = os.path.join(data_path, "test")
     counter = 0
     
-    # Load raw_videos data
+    # Load train data
     for img in os.listdir(os.path.join(train_path, "real")):
         counter += 1
-        if counter == 5000:
+        if counter == 3000:
             break
         img_path = os.path.join(train_path, "real", img)
-        append_train(img_path, "REAL")
+        append_train(x_train, y_train, img_path, "REAL")
     # Reset the value of counter
     counter = 0
     for img in os.listdir(os.path.join(train_path, "fake")):
         counter += 1
-        if counter == 5000:
+        if counter == 3000:
             break
         img_path = os.path.join(train_path, "fake", img)
-        append_train(img_path, "FAKE")
+        append_train(x_train, y_train, img_path, "FAKE")
     counter = 0
     # Load test data
     for img in os.listdir(os.path.join(test_path, "real")):
@@ -95,14 +133,16 @@ def load_file_from_split_dataset(dataset_path: str):
         if counter == 1000:
             break
         img_path = os.path.join(test_path, "real", img)
-        append_test(img_path, "REAL")
+        append_test(x_test, y_test, img_path, "REAL")
     counter = 0
     for img in os.listdir(os.path.join(test_path, "fake")):
         counter += 1
         if counter == 1000:
             break
         img_path = os.path.join(test_path, "fake", img)
-        append_test(img_path, "FAKE")
+        append_test(x_test, y_test, img_path, "FAKE")
+
+    return x_train, y_train, x_test, y_test
 
 #
 # Helper function to show a list of images with their relating titles
@@ -151,69 +191,19 @@ def get_path(script_path):
     :return the absolute path of the project.
     """
     if os.name == "nt":
+        # Unreachable?
         pattern = r"^(.*\\\\deepfake-lip-sync).*"
     else:
         pattern = r"(.*/deepfake-lip-sync).*"
     match = re.match(pattern=pattern, string=script_path)
     return match[1]
 
-
-def main():
-    """
-    Khoa's new stuff
-    """
-    project_path = get_path(os.path.dirname(__file__))
-    dataset_path = os.path.join(project_path, "dataset")
-    load_file_from_split_dataset(dataset_path)
-    return project_path
-
-
-project_path = main()
-
-x_train = np.asarray(x_train)
-y_train = np.asarray(y_train)
-x_test = np.asarray(x_test)
-y_test = np.asarray(y_test)
-
-
-def unison_shuffled_copies(a, b):
-    assert len(a) == len(b)
-    p = np.random.permutation(len(a))
-    return a[p], b[p]
-
-
-x_train, y_train = unison_shuffled_copies(x_train, y_train)
-
-print(f"x_train: {x_train.shape}, x_test {x_test.shape}")
-print(f"y_train: {y_train.shape}, y_test {y_test.shape}")
-
-print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
-
-# Imported the ones from MNIST database lol. Uhhh... why does it have such a high score...? Overfitting?
-# Looks like 256x256 is the standard
-
-
-def load_model():
+def pretrained_quality_discriminator(project_path):
     path = os.path.join(project_path, "saved_models")
     dirs = os.listdir(path)
     if len(dirs) == 0:          # turn != to == later.
-        print("No models can be found. Creating a new model now...")
-        new_model = tf.keras.models.Sequential([
-            tf.keras.layers.Conv2D(3, 7, 1, activation='relu', input_shape=(256, 256, 3)),
-            tf.keras.layers.Conv2D(32, 5, (1, 2), activation='relu'),
-            tf.keras.layers.Conv2D(64, 5, 2, activation='relu'),
-            tf.keras.layers.Conv2D(128, 5, 2, activation='relu'),
-            tf.keras.layers.Conv2D(256, 3, 2, activation='relu'),
-            tf.keras.layers.Conv2D(512, 3, 2, activation='relu'),
-            tf.keras.layers.Conv2D(512, 3, 1, activation='relu'),
-            tf.keras.layers.MaxPool2D(2, 2),
-            tf.keras.layers.Flatten(),
-            tf.keras.layers.Dense(1, activation='sigmoid')
-        ])
-        new_model.compile(optimizer=tf.keras.optimizers.Adam(),
-                          loss=tf.keras.losses.BinaryCrossentropy(), metrics=['accuracy', 'mean_absolute_error'])
-        new_model.summary()
-        return new_model
+        print("No models can be found. If you are trying to train, use quality_discriminator instead.")
+        return None
     else:
         # Just get the first one available I think
         model_path = os.path.join(path, "huy")    # Change dirs[0] to the model of whom you want to load into your
@@ -230,7 +220,7 @@ def load_model():
 # Second of all, how to restore check points and continuing running from there.
 #               Is there a way to indicate that the checkpoint has been restored?
 
-def restore_checkpoint():
+def restore_checkpoint(model, ckpt, manager, epochs, save_checkpoint_path):
     ckpt.restore(manager.latest_checkpoint)
     if manager.latest_checkpoint:
         number = re.match(pattern=r".*(.*(\d)$)", string=str(manager.latest_checkpoint))[1]
@@ -242,10 +232,47 @@ def restore_checkpoint():
 
 
 def train():
+    project_path = get_path(os.path.dirname(__file__))
+    dataset_path = os.path.join(project_path, "dataset")
+    x_train, y_train, x_test, y_test = load_dataset(dataset_path)
+
+    x_train = np.asarray(x_train)
+    y_train = np.asarray(y_train)
+    x_test = np.asarray(x_test)
+    y_test = np.asarray(y_test)
+
+    def unison_shuffled_copies(a, b):
+        assert len(a) == len(b)
+        p = np.random.permutation(len(a))
+        return a[p], b[p]
+
+    x_train, y_train = unison_shuffled_copies(x_train, y_train)
+
+    print(f"x_train: {x_train.shape}, x_test {x_test.shape}")
+    print(f"y_train: {y_train.shape}, y_test {y_test.shape}")
+
+    print("Num GPUs Available: ", len(tf.config.list_physical_devices('GPU')))
+
+    model = quality_discriminator()
+    #model = quality_discriminator_pretrained()
+
+    model.compile(optimizer=tf.keras.optimizers.Adam(),
+              loss=tf.keras.losses.BinaryCrossentropy(), metrics=['accuracy', 'mean_absolute_error'])
+
+    save_checkpoint_path = "saved_checkpoints"
+    saved_model_path = os.path.join(project_path, "saved_models", "huy")
+    save_checkpoint_path = os.path.join(project_path, save_checkpoint_path)
+    epochs = 3
+
+    # model.save(saved_model_path)   # TODO: get dotenv working and make this an env variable.
+    # Comment: I suppose that we won't need the line above then. But I'm gonna comment it out just in case.
     # Maybe only use the checkpoint if there is no saved_models.
     # If there is, check that there is no checkpoints there, and if there is no checkpoints, then use restore the models
     # Ok, so, extract the number at the checkpoint file.
-    epochs_passed = restore_checkpoint()
+    ckpt = tf.train.Checkpoint(model)
+    manager = tf.train.CheckpointManager(ckpt, save_checkpoint_path, max_to_keep=epochs)
+
+    epochs_passed = restore_checkpoint(model, ckpt, manager, epochs, save_checkpoint_path)
     num_loops = epochs - epochs_passed
     print(f"Total epochs: {epochs}\nNumber of epochs gonna be run this session: {num_loops}")
     for epoch in range(num_loops):
@@ -256,19 +283,8 @@ def train():
     # delete all checkpoints after the entire run is complete.
     for file in os.listdir(save_checkpoint_path):
         os.remove(os.path.join(save_checkpoint_path, file))
-
-
-model = load_model()
-if __name__ == "__main__":
-    save_checkpoint_path = "saved_checkpoints"
-    saved_model_path = os.path.join(project_path, "saved_models", "huy")
-    save_checkpoint_path = os.path.join(project_path, save_checkpoint_path)
-    epochs = 3
-
-    ckpt = tf.train.Checkpoint(model)
-    manager = tf.train.CheckpointManager(ckpt, save_checkpoint_path, max_to_keep=epochs)
-    #model.save(saved_model_path)   # TODO: get dotenv working and make this an env variable.
-    # Comment: I suppose that we won't need the line above then. But I'm gonna comment it out just in case.
-    train()
     print("Evaluating model")
     model.evaluate(x_test, y_test)
+
+if __name__ == "__main__":
+    train()
