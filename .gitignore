@@ -146,3 +146,4 @@ utils/testing_spectrogram.py
 
 dataset/
 image_and_text_classifier.png
+test_data/

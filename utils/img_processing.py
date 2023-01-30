@@ -16,5 +16,9 @@ def mask_image(img_path: str):
     cv2.imshow('Masked Image', masked_img)
 
     # save the masked image.
-    cv2.imwrite("masked", masked_img)
+    #cv2.imwrite("masked", masked_img)
     cv2.waitKey(0)
+
+
+if __name__ == "__main__":
+    masked = mask_image("/home/khoa/Documents/Projects/QMIND/deepfake-lip-sync/test_face.png")

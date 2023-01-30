@@ -35,8 +35,8 @@ WEIGHT_INIT_STDDEV = 0.02
 def identity_encoder():
     """A model for receiving the image as a numpy array."""
     model = tf.keras.models.Sequential([
-        tf.keras.layers.InputLayer(input_shape=(256, 256, 3), name="image_input"),
-        tf.keras.layers.Conv2D(3, 7, 1, activation='relu'),
+        tf.keras.layers.InputLayer(input_shape=(256, 256, 6), name="image_input"),
+        tf.keras.layers.Conv2D(6, 7, 1, activation='relu'),
         tf.keras.layers.Conv2D(32, 5, (1, 2), activation='relu'),
         tf.keras.layers.Conv2D(64, 5, 2, activation='relu'),
         tf.keras.layers.Conv2D(128, 5, 2, activation='relu'),
@@ -85,7 +85,7 @@ def audio_encoder():
     return model
 
 
-def combine_model():
+def generator(training=True):
     identity_model = identity_encoder()
     audio_model = audio_encoder()
 
@@ -95,40 +95,39 @@ def combine_model():
     # combined_output = layers.Conv2DTranspose(filters=3, kernel_size=[5, 5], strides=[1, 1], padding="SAME",
     #                                          kernel_initializer=tf.keras.initializers.TruncatedNormal(stddev=WEIGHT_INIT_STDDEV),
     #                                          name="logits")(x)
-    combined_output = layers.Dense(16 * 16 * 768, use_bias=False)(x)
+    combined_output = layers.Dense(128, use_bias=False)(x)
+    combined_output = layers.Dense(256, use_bias=False)(x)
+    combined_output = layers.Dense(768, use_bias=False)(x)
     combined_output = layers.BatchNormalization()(combined_output)
     combined_output = layers.LeakyReLU()(combined_output)
 
-    combined_output = layers.Reshape((16, 16, 768))(combined_output)
-    # assert tf.shape(combined_output) == (None, 16, 16, 768)  # Note: None is the batch size
+    combined_output = layers.Reshape((4, 4, 48))(combined_output)
+    # assert tf.shape(combined_output) == (None, 4, 4, 48)  # Note: None is the batch size
 
-    combined_output = layers.Conv2DTranspose(192, (5, 5), strides=(2, 2), padding='same', use_bias=False)(
+    combined_output = layers.Conv2DTranspose(24, (5, 5), strides=(2, 2), padding='same', use_bias=False)(
         combined_output)
-    # assert combined_output.output_shape == (None, 32, 32, 192)
-    # assert tf.shape(combined_output) == (None, 32, 32, 192)
+    # assert combined_output.output_shape == (None, 8, 8, 24)
     combined_output = layers.BatchNormalization()(combined_output)
     combined_output = layers.LeakyReLU()(combined_output)
 
-    combined_output = layers.Conv2DTranspose(12, (5, 5), strides=(4, 4), padding='same', use_bias=False)(
+    combined_output = layers.Conv2DTranspose(12, (5, 5), strides=(8, 8), padding='same', use_bias=False)(
         combined_output)
-    # assert tf.shape(combined_output) == (None, 128, 128, 12)
+    # assert tf.shape(combined_output) == (None, 64, 64, 12)
     combined_output = layers.BatchNormalization()(combined_output)
     combined_output = layers.LeakyReLU()(combined_output)
 
-    combined_output = layers.Conv2DTranspose(3, (5, 5), strides=(2, 2), padding='same', use_bias=False,
+    combined_output = layers.Conv2DTranspose(3, (5, 5), strides=(4, 4), padding='same', use_bias=False,
                                              activation='tanh')(
-        combined_output)
+combined_output)
     # assert tf.shape(combined_output) == (None, 256, 256, 3)
 
     combined_model = keras.Model(inputs=[identity_model.input, audio_model.input],
                                  outputs=[combined_output], name="combined_model")
     combined_model.summary()
 
-    # Definitely liable to change. Generator is a combined model.
     combined_model.compile(
         optimizer='adam',
-        loss='CategoricalCrossentropy',
-        metrics=['accuracy']
+        loss='mae'
     )
     return combined_model
 
@@ -157,8 +156,9 @@ def extract_audio():
         audio.preview()
 
 
-def testing():
+def test_generate():
     print("testing")
+    # TODO: relative pathing
     img = Image.open("/home/hnguyen/PycharmProjects/deepfake-lip-sync/dataset/train/fake/FAKE_aahsnkchkz.mp4_125.png")
     seed_1 = np.asarray(img)
     filepath = f"/home/hnguyen/PycharmProjects/deepfake-lip-sync/utils/audio/vmigrsncac_audio_132.wav"
@@ -171,7 +171,7 @@ def testing():
     print(combined_inputs["image_input"].shape)
     print(combined_inputs["audio_input"].shape)
 
-    combined = combine_model()
+    combined = generator()
     generated_img = combined(combined_inputs, training=False)
     print(generated_img.shape)
     # print(generated_img[0].shape)
@@ -180,4 +180,4 @@ def testing():
 
 
 if __name__ == "__main__":
-    testing()
+    test_generate()

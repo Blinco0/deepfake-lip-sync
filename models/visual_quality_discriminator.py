@@ -23,7 +23,7 @@ Used to discriminate (hah, get it?) between real and fake images
 Meant to be used as the discriminator
 """
 
-def quality_discriminator(train=True):
+def quality_discriminator(training=True):
     """
     The quality discriminator in all of its glory
     """
@@ -40,6 +40,7 @@ def quality_discriminator(train=True):
         tf.keras.layers.Dense(1, activation='sigmoid')
     ], name="quality_discriminator")
     model.summary()
+    model.compile(loss='binary_crossentropy', optimizer='adam')
     return model
 
 """
@@ -231,7 +232,7 @@ def restore_checkpoint(model, ckpt, manager, epochs, save_checkpoint_path):
         return 0
 
 
-def train():
+def test_train():
     project_path = get_path(os.path.dirname(__file__))
     dataset_path = os.path.join(project_path, "dataset")
     x_train, y_train, x_test, y_test = load_dataset(dataset_path)
@@ -287,4 +288,4 @@ def train():
     model.evaluate(x_test, y_test)
 
 if __name__ == "__main__":
-    train()
+    test_train()
