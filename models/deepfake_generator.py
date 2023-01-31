@@ -90,7 +90,7 @@ def generator(training=True):
     audio_model = audio_encoder()
 
     # x = layers.Concatenate([identity_model.layers[-1].output, audio_model.layers[-1].output])
-    x = tf.concat([identity_model.output, audio_model.output], axis=0)
+    x = tf.concat([identity_model.output, audio_model.output], axis=-1)
     # I just copied it from the Simpson one. The parameters, to be exact. And I have no clue what the parameters are.
     # combined_output = layers.Conv2DTranspose(filters=3, kernel_size=[5, 5], strides=[1, 1], padding="SAME",
     #                                          kernel_initializer=tf.keras.initializers.TruncatedNormal(stddev=WEIGHT_INIT_STDDEV),
