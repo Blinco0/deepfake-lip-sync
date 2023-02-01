@@ -146,5 +146,6 @@ utils/testing_spectrogram.py
 utils/audio
 
 dataset/
+test_data/
 image_and_text_classifier.png
-
+generated_images/
