@@ -164,7 +164,8 @@ def detect_face_add_labels_get_audio(frame, audio, source_video_name: str,
     # Apparently, this colorspace is damn good for computer vision stuff. YCrBr that is. But it's not working so
     # a different colorspace is needed. Scratch that, we need to use the RGB one.
     # frame_ycc = cv2.cvtColor(frame, cv2.COLOR_BGR2YCR_CB)
-    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    #frame_bgr = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    frame_bgr = cv2.cvtColor(frame)
     faces = front_face_detector.detectMultiScale(frame_bgr, minNeighbors=6,
                                                  minSize=(125, 125), scaleFactor=1.15)
     # profile_faces = profile_face_detector.detectMultiScale(frame_bgr, minNeighbors=6,

@@ -95,34 +95,36 @@ def generator(training=True):
     # combined_output = layers.Conv2DTranspose(filters=3, kernel_size=[5, 5], strides=[1, 1], padding="SAME",
     #                                          kernel_initializer=tf.keras.initializers.TruncatedNormal(stddev=WEIGHT_INIT_STDDEV),
     #                                          name="logits")(x)
-    combined_output = layers.Dense(128, use_bias=False)(x)
-    combined_output = layers.Dense(256, use_bias=False)(x)
-    combined_output = layers.Dense(768, use_bias=False)(x)
+    combined_output = layers.Dense(16 * 16 * 768, use_bias=False)(x)
     combined_output = layers.BatchNormalization()(combined_output)
     combined_output = layers.LeakyReLU()(combined_output)
 
-    combined_output = layers.Reshape((4, 4, 48))(combined_output)
-    # assert tf.shape(combined_output) == (None, 4, 4, 48)  # Note: None is the batch size
+    combined_output = layers.Reshape((16, 16, 768))(combined_output)
+    # assert tf.shape(combined_output) == (None, 16, 16, 768)  # Note: None is the batch size
 
-    combined_output = layers.Conv2DTranspose(24, (5, 5), strides=(2, 2), padding='same', use_bias=False)(
+    combined_output = layers.Conv2DTranspose(192, (5, 5), strides=(2, 2), padding='same', use_bias=False)(
         combined_output)
-    # assert combined_output.output_shape == (None, 8, 8, 24)
+    # assert combined_output.output_shape == (None, 32, 32, 192)
+    # assert tf.shape(combined_output) == (None, 32, 32, 192)
     combined_output = layers.BatchNormalization()(combined_output)
     combined_output = layers.LeakyReLU()(combined_output)
 
-    combined_output = layers.Conv2DTranspose(12, (5, 5), strides=(8, 8), padding='same', use_bias=False)(combined_output)
-    # assert tf.shape(combined_output) == (None, 64, 64, 12)
+    combined_output = layers.Conv2DTranspose(12, (5, 5), strides=(4, 4), padding='same', use_bias=False)(
+        combined_output)
+    # assert tf.shape(combined_output) == (None, 128, 128, 12)
     combined_output = layers.BatchNormalization()(combined_output)
     combined_output = layers.LeakyReLU()(combined_output)
 
-    combined_output = layers.Conv2DTranspose(3, (5, 5), strides=(4, 4), padding='same', use_bias=False,
-                                             activation='tanh')(combined_output)
+    combined_output = layers.Conv2DTranspose(3, (5, 5), strides=(2, 2), padding='same', use_bias=False,
+                                             activation='tanh')(
+        combined_output)
     # assert tf.shape(combined_output) == (None, 256, 256, 3)
 
     combined_model = keras.Model(inputs=[identity_model.input, audio_model.input],
                                  outputs=[combined_output], name="combined_model")
     combined_model.summary()
 
+    # Definitely liable to change. Generator is a combined model.
     combined_model.compile(
         optimizer='adam',
         loss='mae'
