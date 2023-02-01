@@ -2,7 +2,6 @@ from moviepy.editor import *
 from utils.get_face_from_video import get_path, get_files_and_get_meta_file
 from scipy.io import wavfile
 import numpy as np
-import random as rd
 # Compilation of changes
 # Change directory name to raw_videos
 # Audio extraction into numpy array is possible! Now we have to implement it in our data preprocessing file!!!!
@@ -21,6 +20,8 @@ def extract_audio():
     print(testing_path)
     my_clip = VideoFileClip(testing_path)
     audio = my_clip.audio
+
+    # Testing the write_audiofile
     audio.write_audiofile(filename=
                                 f"sdasdsad.wav",
                                 codec="pcm_s16le")

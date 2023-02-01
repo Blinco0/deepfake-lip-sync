@@ -284,6 +284,21 @@ def test_train():
     # delete all checkpoints after the entire run is complete.
     for file in os.listdir(save_checkpoint_path):
         os.remove(os.path.join(save_checkpoint_path, file))
+
+
+if __name__ == "__main__":
+    model = load_model()
+
+    save_checkpoint_path = "saved_checkpoints"
+    saved_model_path = os.path.join(project_path, "saved_models", "huy")
+    save_checkpoint_path = os.path.join(project_path, save_checkpoint_path)
+    epochs = 3
+
+    ckpt = tf.train.Checkpoint(model)
+    manager = tf.train.CheckpointManager(ckpt, save_checkpoint_path, max_to_keep=epochs)
+    #model.save(saved_model_path)   # TODO: get dotenv working and make this an env variable.
+    # Comment: I suppose that we won't need the line above then. But I'm gonna comment it out just in case.
+    train()
     print("Evaluating model")
     model.evaluate(x_test, y_test)
 
