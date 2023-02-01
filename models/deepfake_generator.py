@@ -156,8 +156,7 @@ def extract_audio():
 
 def test_generate():
     print("testing")
-    # TODO: relative pathing
-    img = Image.open("/home/hnguyen/PycharmProjects/deepfake-lip-sync/dataset/train/fake/FAKE_aahsnkchkz.mp4_125.png")
+    img = Image.open("/home/hnguyen/PycharmProjects/deepfake-lip-sync/dataset/train/fake/FAKE_aahsnkchkz_125.png")
     seed_1 = np.asarray(img)
     filepath = f"/home/hnguyen/PycharmProjects/deepfake-lip-sync/utils/audio/vmigrsncac_audio_132.wav"
     samplerate, samples = wav.read(filepath)

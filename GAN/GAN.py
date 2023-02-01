@@ -7,85 +7,87 @@ import datetime
 import random
 from PIL import Image
 import matplotlib.pyplot as plt
-# %matplotlib inline
-def generator(z, output_channel_dim, training):
-    with tf.compat.v1.variable_scope("generator", reuse= not training):
-        
-        # 8x8x1024
-        fully_connected = tf.compat.v1.layers.dense(z, 8*8*1024)
-        fully_connected = tf.reshape(fully_connected, (-1, 8, 8, 1024))
-        fully_connected = tf.nn.leaky_relu(fully_connected)
+from models.deepfake_generator import  combine_model as generator
 
-        # 8x8x1024 -> 16x16x512
-        trans_conv1 = tf.compat.v1.layers.conv2d_transpose(inputs=fully_connected,
-                                                 filters=512,
-                                                 kernel_size=[5,5],
-                                                 strides=[2,2],
-                                                 padding="SAME",
-                                                 kernel_initializer=tf.compat.v1.truncated_normal_initializer(stddev=WEIGHT_INIT_STDDEV),
-                                                 name="trans_conv1")
-        batch_trans_conv1 = tf.compat.v1.layers.batch_normalization(inputs = trans_conv1,
-                                                          training=training,
-                                                          epsilon=EPSILON,
-                                                          name="batch_trans_conv1")
-        trans_conv1_out = tf.nn.leaky_relu(batch_trans_conv1,
-                                           name="trans_conv1_out")
+# %matplotlib inline
+# def generator(z, output_channel_dim, training):
+#     with tf.compat.v1.variable_scope("generator", reuse= not training):
         
-        # 16x16x512 -> 32x32x256
-        trans_conv2 = tf.compat.v1.layers.conv2d_transpose(inputs=trans_conv1_out,
-                                                 filters=256,
-                                                 kernel_size=[5,5],
-                                                 strides=[2,2],
-                                                 padding="SAME",
-                                                 kernel_initializer=tf.compat.v1.truncated_normal_initializer(stddev=WEIGHT_INIT_STDDEV),
-                                                 name="trans_conv2")
-        batch_trans_conv2 = tf.compat.v1.layers.batch_normalization(inputs = trans_conv2,
-                                                          training=training,
-                                                          epsilon=EPSILON,
-                                                          name="batch_trans_conv2")
-        trans_conv2_out = tf.nn.leaky_relu(batch_trans_conv2,
-                                           name="trans_conv2_out")
+#         # 8x8x1024
+#         fully_connected = tf.compat.v1.layers.dense(z, 8*8*1024)
+#         fully_connected = tf.reshape(fully_connected, (-1, 8, 8, 1024))
+#         fully_connected = tf.nn.leaky_relu(fully_connected)
+
+#         # 8x8x1024 -> 16x16x512
+#         trans_conv1 = tf.compat.v1.layers.conv2d_transpose(inputs=fully_connected,
+#                                                  filters=512,
+#                                                  kernel_size=[5,5],
+#                                                  strides=[2,2],
+#                                                  padding="SAME",
+#                                                  kernel_initializer=tf.compat.v1.truncated_normal_initializer(stddev=WEIGHT_INIT_STDDEV),
+#                                                  name="trans_conv1")
+#         batch_trans_conv1 = tf.compat.v1.layers.batch_normalization(inputs = trans_conv1,
+#                                                           training=training,
+#                                                           epsilon=EPSILON,
+#                                                           name="batch_trans_conv1")
+#         trans_conv1_out = tf.nn.leaky_relu(batch_trans_conv1,
+#                                            name="trans_conv1_out")
         
-        # 32x32x256 -> 64x64x128
-        trans_conv3 = tf.compat.v1.layers.conv2d_transpose(inputs=trans_conv2_out,
-                                                 filters=128,
-                                                 kernel_size=[5,5],
-                                                 strides=[2,2],
-                                                 padding="SAME",
-                                                 kernel_initializer=tf.compat.v1.truncated_normal_initializer(stddev=WEIGHT_INIT_STDDEV),
-                                                 name="trans_conv3")
-        batch_trans_conv3 = tf.compat.v1.layers.batch_normalization(inputs = trans_conv3,
-                                                          training=training,
-                                                          epsilon=EPSILON,
-                                                          name="batch_trans_conv3")
-        trans_conv3_out = tf.nn.leaky_relu(batch_trans_conv3,
-                                           name="trans_conv3_out")
+#         # 16x16x512 -> 32x32x256
+#         trans_conv2 = tf.compat.v1.layers.conv2d_transpose(inputs=trans_conv1_out,
+#                                                  filters=256,
+#                                                  kernel_size=[5,5],
+#                                                  strides=[2,2],
+#                                                  padding="SAME",
+#                                                  kernel_initializer=tf.compat.v1.truncated_normal_initializer(stddev=WEIGHT_INIT_STDDEV),
+#                                                  name="trans_conv2")
+#         batch_trans_conv2 = tf.compat.v1.layers.batch_normalization(inputs = trans_conv2,
+#                                                           training=training,
+#                                                           epsilon=EPSILON,
+#                                                           name="batch_trans_conv2")
+#         trans_conv2_out = tf.nn.leaky_relu(batch_trans_conv2,
+#                                            name="trans_conv2_out")
         
-        # 64x64x128 -> 128x128x64
-        trans_conv4 = tf.compat.v1.layers.conv2d_transpose(inputs=trans_conv3_out,
-                                                 filters=64,
-                                                 kernel_size=[5,5],
-                                                 strides=[2,2],
-                                                 padding="SAME",
-                                                 kernel_initializer=tf.compat.v1.truncated_normal_initializer(stddev=WEIGHT_INIT_STDDEV),
-                                                 name="trans_conv4")
-        batch_trans_conv4 = tf.compat.v1.layers.batch_normalization(inputs = trans_conv4,
-                                                          training=training,
-                                                          epsilon=EPSILON,
-                                                          name="batch_trans_conv4")
-        trans_conv4_out = tf.nn.leaky_relu(batch_trans_conv4,
-                                           name="trans_conv4_out")
+#         # 32x32x256 -> 64x64x128
+#         trans_conv3 = tf.compat.v1.layers.conv2d_transpose(inputs=trans_conv2_out,
+#                                                  filters=128,
+#                                                  kernel_size=[5,5],
+#                                                  strides=[2,2],
+#                                                  padding="SAME",
+#                                                  kernel_initializer=tf.compat.v1.truncated_normal_initializer(stddev=WEIGHT_INIT_STDDEV),
+#                                                  name="trans_conv3")
+#         batch_trans_conv3 = tf.compat.v1.layers.batch_normalization(inputs = trans_conv3,
+#                                                           training=training,
+#                                                           epsilon=EPSILON,
+#                                                           name="batch_trans_conv3")
+#         trans_conv3_out = tf.nn.leaky_relu(batch_trans_conv3,
+#                                            name="trans_conv3_out")
         
-        # 128x128x64 -> 128x128x3
-        logits = tf.compat.v1.layers.conv2d_transpose(inputs=trans_conv4_out,
-                                            filters=3,
-                                            kernel_size=[5,5],
-                                            strides=[1,1],
-                                            padding="SAME",
-                                            kernel_initializer=tf.compat.v1.truncated_normal_initializer(stddev=WEIGHT_INIT_STDDEV),
-                                            name="logits")
-        out = tf.tanh(logits, name="out")
-        return out
+#         # 64x64x128 -> 128x128x64
+#         trans_conv4 = tf.compat.v1.layers.conv2d_transpose(inputs=trans_conv3_out,
+#                                                  filters=64,
+#                                                  kernel_size=[5,5],
+#                                                  strides=[2,2],
+#                                                  padding="SAME",
+#                                                  kernel_initializer=tf.compat.v1.truncated_normal_initializer(stddev=WEIGHT_INIT_STDDEV),
+#                                                  name="trans_conv4")
+#         batch_trans_conv4 = tf.compat.v1.layers.batch_normalization(inputs = trans_conv4,
+#                                                           training=training,
+#                                                           epsilon=EPSILON,
+#                                                           name="batch_trans_conv4")
+#         trans_conv4_out = tf.nn.leaky_relu(batch_trans_conv4,
+#                                            name="trans_conv4_out")
+        
+#         # 128x128x64 -> 128x128x3
+#         logits = tf.compat.v1.layers.conv2d_transpose(inputs=trans_conv4_out,
+#                                             filters=3,
+#                                             kernel_size=[5,5],
+#                                             strides=[1,1],
+#                                             padding="SAME",
+#                                             kernel_initializer=tf.compat.v1.truncated_normal_initializer(stddev=WEIGHT_INIT_STDDEV),
+#                                             name="logits")
+#         out = tf.tanh(logits, name="out")
+#         return out
 def discriminator(x, reuse):
     with tf.compat.v1.variable_scope("discriminator", reuse=reuse): 
         
