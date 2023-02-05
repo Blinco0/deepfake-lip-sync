@@ -85,7 +85,7 @@ def audio_encoder():
     return model
 
 
-def generator(training=True):
+def generator():
     identity_model = identity_encoder()
     audio_model = audio_encoder()
 
@@ -130,6 +130,23 @@ def generator(training=True):
         loss='mae'
     )
     return combined_model
+
+def combined_generator(discriminator):
+    input_face = keras.Input(shape=(256, 256, 6), name="input_face_comb")
+    input_audio = keras.Input(shape=(6, 513, 1), name="input_audio_comb")
+
+    gen = generator()
+
+    fake_face = gen([input_face, input_audio])
+    discriminator.trainable = False
+    d = discriminator(fake_face)
+
+    model = keras.Model([input_face, input_audio], [fake_face, d])
+
+    model.compile(loss=['mae', 'binary_crossentropy'], 
+                            optimizer='adam', loss_weights=[1., .01])
+
+    return model
 
 
 # mask_image("/home/hnguyen/PycharmProjects/deepfake-lip-sync/dataset/train/fake/FAKE_aktnlyqpah.mp4_111.png")
