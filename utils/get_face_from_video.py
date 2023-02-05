@@ -187,10 +187,10 @@ def detect_face_add_labels_get_audio(frame, audio, source_video_name: str,
             # <REAL or FAKE>_<source_video>_<frame_index>
             # Roll to see if it goes to the test or the train
             roll = random.randint(1, train_ratio + test_ratio + valid_ratio)  # inclusive [a, b] for randint
-            if roll <= test_ratio:
-                dest = f"test"
-            elif roll <= train_ratio + test_ratio:
+            if roll <= train_ratio:
                 dest = f"train"
+            elif roll <= train_ratio + test_ratio:
+                dest = f"test"
                 # what about valid?
             else:
                 dest = f"valid"
@@ -252,7 +252,7 @@ if __name__ == "__main__":
 
     # Ratio between raw_videos and test
     train_ratio = 3
-    test_ratio = 2
-    valid_ratio = 1
+    test_ratio = 0
+    valid_ratio = 0
 
     main()
