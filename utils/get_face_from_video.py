@@ -20,7 +20,7 @@ def detect_if_structure_exists(dataset_path):
     :return: false
     """
     first_levels = [dataset_path]
-    second_levels = ["raw_videos", "test", "valid"]
+    second_levels = ["train", "test", "valid"]
     third_levels = ["real", "fake"]
 
     for level in first_levels:
@@ -123,7 +123,7 @@ def capture_video(dataset_path: str, vid_dest: str, meta_dict: dict):
         # audio_frame, val = player.get_frame()
         # Check to see if frame is found. Otherwise, the video is considered to have gone through all frames.
         # Nice that frame is also a matrix.
-        if ret is True:
+        if ret is True and label.lower() == "real":
             results = detect_face_add_labels_get_audio(frame=frame, audio=audio,
                                                        source_video_name=source_video, counter=counter,
                                                        frame_time=frame_time, dataset_path=dataset_path,
@@ -165,7 +165,7 @@ def detect_face_add_labels_get_audio(frame, audio, source_video_name: str,
     # a different colorspace is needed. Scratch that, we need to use the RGB one.
     # frame_ycc = cv2.cvtColor(frame, cv2.COLOR_BGR2YCR_CB)
     #frame_bgr = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    frame_bgr = cv2.cvtColor(frame)
+    frame_bgr = frame
     faces = front_face_detector.detectMultiScale(frame_bgr, minNeighbors=6,
                                                  minSize=(125, 125), scaleFactor=1.15)
     # profile_faces = profile_face_detector.detectMultiScale(frame_bgr, minNeighbors=6,
@@ -187,7 +187,7 @@ def detect_face_add_labels_get_audio(frame, audio, source_video_name: str,
             if roll <= test_ratio:
                 dest = f"test"
             elif roll <= train_ratio + test_ratio:
-                dest = f"raw_videos"
+                dest = f"train"
                 # what about valid?
             else:
                 dest = f"valid"
@@ -219,7 +219,7 @@ def main():
     metafile_path = metafile_path[0]  # There should be only one metafile in the training set
     meta_dictionary = get_meta_dict(metafile_path)
 
-    num_videos = 40  # Number of videos.
+    num_videos = 2409  # Number of videos.
 
     for i in range(num_videos):
         start_time = time.time()
