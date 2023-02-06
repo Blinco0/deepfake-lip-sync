@@ -116,7 +116,7 @@ def generator():
     combined_output = layers.LeakyReLU()(combined_output)
 
     combined_output = layers.Conv2DTranspose(3, (5, 5), strides=(2, 2), padding='same', use_bias=False,
-                                             activation='tanh')(
+                                             activation='sigmoid')(
         combined_output)
     # assert tf.shape(combined_output) == (None, 256, 256, 3)
 
