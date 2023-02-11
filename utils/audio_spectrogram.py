@@ -16,7 +16,7 @@ def stft(sig, frameSize, overlapFac=0.5, window=np.hanning):
     cols = np.ceil((len(samples) - frameSize) / float(hopSize)) + 1
     # zeros at end (thus samples can be fully covered by frames)
     samples = np.append(samples, np.zeros(frameSize))
-
+    # assert cols == 6, 'Samples length {} frameSize {} hopSize'.format(len(samples), frameSize, float(hopSize))
     frames = stride_tricks.as_strided(samples, shape=(int(cols), frameSize),
                                       strides=(samples.strides[0] * hopSize, samples.strides[0])).copy()
     frames *= win
@@ -57,6 +57,8 @@ def stft_np(audiopath, binsize=2 ** 10):
     s = stft(samples, binsize)
     sshow, freq = logscale_spec(s, factor=1.0, sr=samplerate)
     ims = 20. * np.log10(np.abs(sshow) / 10e-6)  # amplitude to decibel
+    assert ims.shape == (6, 513), ims.shape
+    ims = ims.reshape((6, 513, 1))
     return ims
 
 
