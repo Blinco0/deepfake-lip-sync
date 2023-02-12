@@ -39,7 +39,7 @@ def quality_discriminator(training=True):
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(1, activation='sigmoid')
     ], name="quality_discriminator")
-    model.summary()
+    # model.summary()
     model.compile(loss='binary_crossentropy', optimizer='adam')
     return model
 
