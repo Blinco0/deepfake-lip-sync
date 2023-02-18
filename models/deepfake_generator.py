@@ -35,19 +35,18 @@ WEIGHT_INIT_STDDEV = 0.02
 def identity_encoder():
     """A model for receiving the image as a numpy array."""
     model = tf.keras.models.Sequential([
-        tf.keras.layers.InputLayer(input_shape=(256, 256, 3), name="image_input"),
-        tf.keras.layers.Conv2D(3, 7, 1, activation='relu'),
-        tf.keras.layers.Conv2D(32, 5, (1, 2), activation='relu'),
-        tf.keras.layers.Conv2D(64, 5, 2, activation='relu'),
-        tf.keras.layers.Conv2D(128, 5, 2, activation='relu'),
-        tf.keras.layers.Conv2D(256, 3, 2, activation='relu'),
-        tf.keras.layers.Conv2D(512, 3, 2, activation='relu'),
-        tf.keras.layers.Conv2D(512, 3, 1, activation='relu'),
-        tf.keras.layers.MaxPool2D(2, 2),
+        tf.keras.layers.InputLayer(input_shape=(256, 256, 6), name="image_input"),
+        layers.Conv2D(16, 1, 1, activation='relu'),
+        layers.MaxPool2D(32, 2, padding='same'),
+        layers.Conv2D(32, 5, 1, activation='relu'),
+        layers.MaxPool2D(64, 2, padding='same'),
+        layers.Conv2D(64, 7, 2, activation='relu'),
+        layers.MaxPool2D(64, 2, padding='same'),
+        layers.Conv2D(64, 7, 2, activation='relu'),
         tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(64, activation='sigmoid')
+        tf.keras.layers.Dense(1024, activation='sigmoid')
     ], name="image")
-    model.summary()
+    # model.summary()
     return model
 
 
@@ -69,40 +68,41 @@ def audio_encoder():
     model = models.Sequential([
         layers.Input(shape=shape_of_audio_np, name="audio_input"),
         # Downsample the input.
-        layers.Resizing(32, 32),
+        layers.Resizing(55, 55),
         # Normalize.
         norm_layer,
-        layers.Conv2D(32, 3, activation='relu'),
-        layers.Conv2D(64, 3, activation='relu'),
+        layers.Conv2D(3, 3, strides=3, activation='relu'),
+        layers.BatchNormalization(),
+        layers.Conv2D(9, 3, strides=3, activation='relu'),
+        layers.BatchNormalization(),
+        layers.Conv2D(30, 3, strides=1, activation='relu'),
+        layers.BatchNormalization(),
         layers.MaxPooling2D(),
-        layers.Dropout(0.25),
         layers.Flatten(),
         layers.Dense(128, activation='relu'),
-        layers.Dropout(0.5),
-        layers.Dense(num_labels),
     ], name="audio")
-    model.summary()
+    # model.summary()
     return model
 
 
-def combine_model():
+def generator():
     identity_model = identity_encoder()
     audio_model = audio_encoder()
 
     # x = layers.Concatenate([identity_model.layers[-1].output, audio_model.layers[-1].output])
-    x = tf.concat([identity_model.output, audio_model.output], axis=0)
+    x = tf.concat([identity_model.output, audio_model.output], axis=-1)
     # I just copied it from the Simpson one. The parameters, to be exact. And I have no clue what the parameters are.
     # combined_output = layers.Conv2DTranspose(filters=3, kernel_size=[5, 5], strides=[1, 1], padding="SAME",
     #                                          kernel_initializer=tf.keras.initializers.TruncatedNormal(stddev=WEIGHT_INIT_STDDEV),
     #                                          name="logits")(x)
-    combined_output = layers.Dense(16 * 16 * 768, use_bias=False)(x)
+    combined_output = layers.Dense(8 * 8 * 18, use_bias=False)(x)
     combined_output = layers.BatchNormalization()(combined_output)
     combined_output = layers.LeakyReLU()(combined_output)
 
-    combined_output = layers.Reshape((16, 16, 768))(combined_output)
+    combined_output = layers.Reshape((8, 8, 18))(combined_output)
     # assert tf.shape(combined_output) == (None, 16, 16, 768)  # Note: None is the batch size
 
-    combined_output = layers.Conv2DTranspose(192, (5, 5), strides=(2, 2), padding='same', use_bias=False)(
+    combined_output = layers.Conv2DTranspose(18, (5, 5), strides=(2, 2), padding='same', use_bias=False)(
         combined_output)
     # assert combined_output.output_shape == (None, 32, 32, 192)
     # assert tf.shape(combined_output) == (None, 32, 32, 192)
@@ -115,22 +115,46 @@ def combine_model():
     combined_output = layers.BatchNormalization()(combined_output)
     combined_output = layers.LeakyReLU()(combined_output)
 
-    combined_output = layers.Conv2DTranspose(3, (5, 5), strides=(2, 2), padding='same', use_bias=False,
-                                             activation='tanh')(
+    combined_output = layers.Conv2DTranspose(6, (5, 5), strides=(4, 4), padding='same', use_bias=False)(
         combined_output)
+    # assert tf.shape(combined_output) == (None, 128, 128, 12)
+    combined_output = layers.BatchNormalization()(combined_output)
+    combined_output = layers.LeakyReLU()(combined_output)
+
+    combined_output = layers.Conv2DTranspose(3, (5, 5), strides=1, padding='same', use_bias=False)(combined_output)
+    combined_output = layers.BatchNormalization()(combined_output)
+    combined_output = layers.LeakyReLU()(combined_output)
     # assert tf.shape(combined_output) == (None, 256, 256, 3)
+
+    combined_output = layers.Conv2D(3, kernel_size=1, strides=1, padding="same", activation="sigmoid")(combined_output)
 
     combined_model = keras.Model(inputs=[identity_model.input, audio_model.input],
                                  outputs=[combined_output], name="combined_model")
-    combined_model.summary()
+    # combined_model.summary()
 
-    # Definitely liable to change. Generator is a combined model.
     combined_model.compile(
         optimizer='adam',
-        loss='CategoricalCrossentropy',
-        metrics=['accuracy']
+        loss='mae'
     )
     return combined_model
+
+def combined_generator(discriminator):
+    input_face = keras.Input(shape=(256, 256, 6), name="input_face_comb")
+    input_audio = keras.Input(shape=(6, 513, 1), name="input_audio_comb")
+
+    gen = generator()
+
+    fake_face = gen([input_face, input_audio])
+    discriminator.trainable = False
+    d = discriminator(fake_face)
+
+    model = keras.Model([input_face, input_audio], [fake_face, d])
+
+
+    model.compile(loss=['mae', 'binary_crossentropy'], 
+                            optimizer='adam', loss_weights=[1., .01])
+
+    return model
 
 
 # mask_image("/home/hnguyen/PycharmProjects/deepfake-lip-sync/dataset/train/fake/FAKE_aktnlyqpah.mp4_111.png")
@@ -157,7 +181,7 @@ def extract_audio():
         audio.preview()
 
 
-def testing():
+def test_generate():
     print("testing")
     img = Image.open("/home/hnguyen/PycharmProjects/deepfake-lip-sync/dataset/train/fake/FAKE_aahsnkchkz_125.png")
     seed_1 = np.asarray(img)
@@ -171,7 +195,7 @@ def testing():
     print(combined_inputs["image_input"].shape)
     print(combined_inputs["audio_input"].shape)
 
-    combined = combine_model()
+    combined = generator()
     generated_img = combined(combined_inputs, training=False)
     print(generated_img.shape)
     # print(generated_img[0].shape)
@@ -180,4 +204,4 @@ def testing():
 
 
 if __name__ == "__main__":
-    testing()
+    test_generate()
