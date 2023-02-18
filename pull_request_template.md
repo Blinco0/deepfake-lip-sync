@@ -6,7 +6,9 @@ If there are any shortcomings at all, make sure that is also included here.
  -->
 
 ## [Github Issue Number](https://docs.github.com/en/issues/tracking-your-work-with-issues/about-issues)
-
+<!-- 
+Make sure you tag the ticket on the same line as resolves so it gets automatically added
+-->
 Resolves:
 <!--
   What issue does it resolve?
@@ -26,6 +28,10 @@ If any of these points have yet to be satisfied, make sure that you set the titl
 - [ ] Branch has merged in the **latest version of main**
 - [ ] **Linting** has occured, as per the project linting config 
 - [ ] All changed functions have proper **docstring** to describe what they do and how to use them.
+- [ ] Add yourself as the assignee.
+- [ ] Add reviewers (Khoa must be one of them)
+- [ ] Ensure that all relevant ticket has been linked to the PR
+- [ ] Make sure the team is aware of the changes being implemented (especially Khoa)
  
  
 ## Reviewer checklist
@@ -33,6 +39,7 @@ Second reviewer will need to double check all of these points
 
 - [ ] Relevant issue is mentioned in description 
 - [ ] Code solves the issue
+- [ ] Code follows the specification
 - [ ] Code is the best solution for the issue
 - [ ] Branch is **ahead of main**
 - [ ] Ensures the fix/feature works locally  
