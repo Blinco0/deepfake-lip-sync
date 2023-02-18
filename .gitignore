@@ -128,15 +128,25 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# test and train videos....
-train
+# test and raw_videos videos....
+raw_videos
 test
 train_and_test_set
 dataset
 old_dataset
-
+models/masked
 # note
 note.py
 cascade-files
 
+# testing files
+utils/testing_pydub.py
+utils/*.wav
+utils/testing_spectrogram.py
+utils/audio
+
 dataset/
+test_data/
+image_and_text_classifier.png
+test_data/
+generated_images/
