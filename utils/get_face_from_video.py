@@ -8,10 +8,31 @@ import numpy as np
 from moviepy.editor import *
 from utils.audio_spectrogram import stft_np
 
+from tqdm import tqdm
+
 
 # Uhh, some videos are uncanny as hell... It's like watching a real Mandela Catalogue
 # Train is a list containing 3D numpy arrays for the deepfake discriminator:
 # x coord - y coord - rgb values
+
+FRONT_FACE_DETECTOR = cv2.CascadeClassifier(os.path.join(cv2.data.haarcascades, 'haarcascade_frontalface_alt2.xml'))
+RESIZE_SIZE = (256, 256)  # Resize size for the cropped face
+
+# For profile picture detection (including side faces... We might need it later)...
+# profile_face_detector = cv2.CascadeClassifier("cascade-files/haarcascade_profileface.xml")
+if FRONT_FACE_DETECTOR.empty():
+    print("Unable to open the haarcascade mouth detection xml file...")
+    exit(1)
+
+train = []
+labels = []
+sorted_keys = []
+mp4_files = []
+
+# Ratio between raw_videos and test
+train_ratio = 3
+test_ratio = 0
+valid_ratio = 0
 
 
 def detect_if_structure_exists(dataset_path):
@@ -141,8 +162,8 @@ def capture_video(dataset_path: str, vid_dest: str, meta_dict: dict):
                 break
             counter += 1
         # print(counter)  # Guaranteed 300. Will delete it later.
-    else:
-        print(f"{source_video}.mp4 is FAKE!")
+    # else:
+    #     print(f"{source_video}.mp4 is FAKE!")
     faces = np.asarray(faces)
     audios = np.asarray(audios)
     return faces, audios
@@ -169,7 +190,7 @@ def detect_face_add_labels_get_audio(frame, audio, source_video_name: str,
     # frame_ycc = cv2.cvtColor(frame, cv2.COLOR_BGR2YCR_CB)
     #frame_bgr = cv2.cvtColor(frame, cv2.COLOR_BGR2RG)
     frame_bgr = frame
-    faces = front_face_detector.detectMultiScale(frame_bgr, minNeighbors=6,
+    faces = FRONT_FACE_DETECTOR.detectMultiScale(frame_bgr, minNeighbors=6,
                                                  minSize=(125, 125), scaleFactor=1.15)
     # profile_faces = profile_face_detector.detectMultiScale(frame_bgr, minNeighbors=6,
     # minSize=(150, 150), maxSize=(500, 500), scaleFactor=1.1)
@@ -212,47 +233,29 @@ def detect_face_add_labels_get_audio(frame, audio, source_video_name: str,
         # cv2.imshow("Facial detection cropped", cropped)  # imshow is the bottleneck...
 
 
-def main():
+def extract_data(raw_data_path="raw_videos", ds_path="dataset"):
+    """
+    Must use absolute pathing
+    raw_data_path: the absolute path to the original raw videos
+    ds_paths: the absolute path to the dataset folder to extract data to
+    """
     project_path = get_path(os.path.dirname(__file__))
-    ds_path = os.path.join(project_path, "dataset")
-    raw_data_path = os.path.join(project_path, "raw_videos")
+    # ds_path = os.path.join(project_path, "dataset")
+    # raw_data_path = os.path.join(project_path, "raw_videos")
 
     detect_if_structure_exists(ds_path)
     mp4_file_paths, metafile_path = get_files_and_get_meta_file(raw_data_path)
     metafile_path = metafile_path[0]  # There should be only one metafile in the training set
     meta_dictionary = get_meta_dict(metafile_path)
 
-    num_videos = 1748  # Number of videos.
+    num_videos = len(mp4_file_paths)  # Number of videos.
 
-    for i in range(num_videos):
+    for i in tqdm(range(num_videos), total=num_videos, unit='file', position=0):
         start_time = time.time()
         # Get the numpy representations of faces and audios corresponding to it for each video.
         faces, audios = capture_video(ds_path, mp4_file_paths[i], meta_dictionary)
-        print(
-            f"----- Video {mp4_file_paths[i]} done. {i + 1} out of {num_videos} out of a total of {len(mp4_file_paths)}"
-            f". {time.time() - start_time} seconds -----")
+        # print(
+        #     f"----- Video {mp4_file_paths[i]} done. {i + 1} out of {num_videos} out of a total of {len(mp4_file_paths)}"
+        #     f". {time.time() - start_time} seconds -----")
         # print(f"faces: {faces.shape}, audios: {audios.shape}")
     return
-
-
-if __name__ == "__main__":
-    train = []
-    labels = []
-    sorted_keys = []
-    mp4_files = []
-
-    front_face_detector = cv2.CascadeClassifier(os.path.join(cv2.data.haarcascades, 'haarcascade_frontalface_alt2.xml'))
-    RESIZE_SIZE = (256, 256)  # Resize size for the cropped face
-
-    # For profile picture detection (including side faces... We might need it later)...
-    # profile_face_detector = cv2.CascadeClassifier("cascade-files/haarcascade_profileface.xml")
-    if front_face_detector.empty():
-        print("Unable to open the haarcascade mouth detection xml file...")
-        exit(1)
-
-    # Ratio between raw_videos and test
-    train_ratio = 3
-    test_ratio = 0
-    valid_ratio = 0
-
-    main()
