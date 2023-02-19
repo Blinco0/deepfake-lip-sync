@@ -6,7 +6,7 @@ import time
 import cv2
 import numpy as np
 from moviepy.editor import *
-from utils.audio_spectrogram import stft_np
+from audio_spectrogram import stft_np
 
 from tqdm import tqdm
 
@@ -59,11 +59,11 @@ def get_path(script_path):
     :return the absolute path of the project.
     """
     if os.name == "nt":
-        pattern = r"^(.*\\\\deepfake-lip-sync).*"
+        pattern = r"^(.*\\deepfake-lip-sync).*"
     else:
         pattern = r"(.*/deepfake-lip-sync).*"
     match = re.match(pattern=pattern, string=script_path)
-    return match[1]
+    return match.group(1)
 
 
 def get_files_and_get_meta_file(directory):
@@ -77,8 +77,8 @@ def get_files_and_get_meta_file(directory):
     meta_files = []
     if os.name == "nt":
         # For Windows
-        vid_pattern = r"^.*\\\\.*\.mp4$"
-        metafile_pattern = r"^.*\\\\.*\.json$"
+        vid_pattern = r"^.*\\.*\.mp4$"
+        metafile_pattern = r"^.*\\.*\.json$"
     else:
         # For Linux
         vid_pattern = r"^.*\.mp4$"
@@ -233,16 +233,34 @@ def detect_face_add_labels_get_audio(frame, audio, source_video_name: str,
         # cv2.imshow("Facial detection cropped", cropped)  # imshow is the bottleneck...
 
 
+def get_absolute_paths(raw_data_folder="raw_videos", ds_folder="dataset"):
+    """
+    Get absolute paths according to raw_data_folder and ds_folder.
+    :param raw_data_folder: The name of the folder inside the project folder where the raw_videos are held
+    :param ds_folder: The name of the folder inside the project folder where the extracted data are going to be sent
+    :return: the absolute paths to all partition sub folders of the raw_data_folder and the path to the 
+    dataset folder
+    """
+    # Modify this so that it can get the subfolders. Done
+    project_path = get_path(os.path.dirname(__file__))
+
+    ds_path = os.path.join(project_path, ds_folder)
+    raw_data_path = os.path.join(project_path, raw_data_folder)
+
+    # Getting all the subfolders containing the videos of each partition from the Kaggle dataset.
+    raw_data_paths = []
+    for dirname, _, filenames in os.walk(raw_data_path):
+        raw_data_paths.append(dirname)
+    return raw_data_paths[1:], ds_path
+
+
 def extract_data(raw_data_path="raw_videos", ds_path="dataset"):
     """
-    Must use absolute pathing
+    Must use absolute pathing. Only works for one partition of the kaggle set at a time.
     raw_data_path: the absolute path to the original raw videos
     ds_paths: the absolute path to the dataset folder to extract data to
     """
-    project_path = get_path(os.path.dirname(__file__))
-    # ds_path = os.path.join(project_path, "dataset")
-    # raw_data_path = os.path.join(project_path, "raw_videos")
-
+    # Multiple partitions with same metadata.json naming...
     detect_if_structure_exists(ds_path)
     mp4_file_paths, metafile_path = get_files_and_get_meta_file(raw_data_path)
     metafile_path = metafile_path[0]  # There should be only one metafile in the training set
@@ -255,7 +273,12 @@ def extract_data(raw_data_path="raw_videos", ds_path="dataset"):
         # Get the numpy representations of faces and audios corresponding to it for each video.
         faces, audios = capture_video(ds_path, mp4_file_paths[i], meta_dictionary)
         # print(
-        #     f"----- Video {mp4_file_paths[i]} done. {i + 1} out of {num_videos} out of a total of {len(mp4_file_paths)}"
-        #     f". {time.time() - start_time} seconds -----")
+            # f"----- Video {mp4_file_paths[i]} done. {i + 1} out of {num_videos} out of a total of {len(mp4_file_paths)}"
+            # f". {time.time() - start_time} seconds -----")
         # print(f"faces: {faces.shape}, audios: {audios.shape}")
     return
+
+
+if __name__ == "__main__":
+    raw_data_paths, ds_path = get_absolute_paths()
+    # extract_data(raw_data_path=raw_data_path, ds_path=ds_path)
