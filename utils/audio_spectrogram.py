@@ -57,7 +57,8 @@ def stft_np(audiopath, binsize=2 ** 10):
     s = stft(samples, binsize)
     sshow, freq = logscale_spec(s, factor=1.0, sr=samplerate)
     ims = 20. * np.log10(np.abs(sshow) / 10e-6)  # amplitude to decibel
-    assert ims.shape == (6, 513), ims.shape
+    if ims.shape != (6, 513):
+        return None
     ims = ims.reshape((6, 513, 1))
     return ims
 

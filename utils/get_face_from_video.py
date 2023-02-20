@@ -216,12 +216,14 @@ def detect_face_add_labels_get_audio(frame, audio, source_video_name: str,
                                       f"{label.upper()}_{source_video_name}_{counter}.wav")
 
             # Save frames and audio
-            cv2.imwrite(path, cropped)
             frame_audio.write_audiofile(filename=audio_path, codec="pcm_s16le", verbose=False, logger=None)
             stft_ver = stft_np(audio_path)
-            return cropped, stft_ver
-        else:
-            return None
+            # Do not write image and audio if audio shape is not a specific shape
+            if stft_ver is not None:
+                cv2.imwrite(path, cropped)
+                return cropped, stft_ver
+            os.remove(audio_path) # Remove audio if audio shape is not good
+    return None
         # return the cropped image and audio
         # for (x, y, w, h) in profile_faces:
         # frame_bgr = cv2.rectangle(img=frame_bgr, pt1=(x, y), pt2=(x + w, y + h),
