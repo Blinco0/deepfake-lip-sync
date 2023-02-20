@@ -2,6 +2,7 @@ import os
 import re
 import random
 import json
+from get_paths import get_path
 
 
 def choosing_data_for_batch(batch_num: int, batch_size: int, data_path: str, save_location: str):
@@ -60,7 +61,12 @@ def choosing_data_for_batch(batch_num: int, batch_size: int, data_path: str, sav
 
 
 if __name__ == "__main__":
+    project_path = get_path()
+    file_name = "batches.json"
+    save_path = os.path.join(project_path, "utils", file_name)
+    data_path = os.path.join(project_path, "dataset", "train", "real")
+    print(save_path)
     choosing_data_for_batch(batch_num=100, batch_size=100,
-                            data_path="/home/hnguyen/PycharmProjects/deepfake-lip-sync/dataset/train/real",
-                            save_location="batches.json")
+                            data_path=data_path,
+                            save_location=save_path)
 

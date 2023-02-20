@@ -2,9 +2,10 @@ import os
 import re
 
 
-def get_path(script_path):
+def get_path(script_path=os.path.dirname(__file__)):
     """
-    Get the path to the current script. Crop it out to get the path of the project.
+    Get the path to the current script. Crop it out to get the path of the project. Default
+    argument is the path to this file.
     Assume that the project name is deepfake-lip-sync.
     :return the absolute path of the project.
     """
@@ -14,5 +15,8 @@ def get_path(script_path):
         pattern = r"(.*/deepfake-lip-sync).*"
     match = re.match(pattern=pattern, string=script_path)
     return match.group(1)
+
+
+
 
 

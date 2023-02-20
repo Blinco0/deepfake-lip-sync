@@ -7,7 +7,7 @@ import cv2
 import numpy as np
 from moviepy.editor import *
 from audio_spectrogram import stft_np
-
+from get_paths import get_path
 from tqdm import tqdm
 
 
@@ -50,20 +50,6 @@ def detect_if_structure_exists(dataset_path):
                 path = os.path.join(level, second_level, third_level)
                 if os.path.exists(path) is False:
                     os.makedirs(path, exist_ok=True)
-
-
-def get_path(script_path):
-    """
-    Get the path to the current script. Crop it out to get the path of the project.
-    Assume that the project name is deepfake-lip-sync.
-    :return the absolute path of the project.
-    """
-    if os.name == "nt":
-        pattern = r"^(.*\\deepfake-lip-sync).*"
-    else:
-        pattern = r"(.*/deepfake-lip-sync).*"
-    match = re.match(pattern=pattern, string=script_path)
-    return match.group(1)
 
 
 def get_files_and_get_meta_file(directory):
@@ -241,7 +227,7 @@ def get_absolute_paths(raw_data_folder="raw_videos", ds_folder="dataset"):
     dataset folder
     """
     # Modify this so that it can get the subfolders. Done
-    project_path = get_path(os.path.dirname(__file__))
+    project_path = get_path()
 
     ds_path = os.path.join(project_path, ds_folder)
     raw_data_path = os.path.join(project_path, raw_data_folder)
