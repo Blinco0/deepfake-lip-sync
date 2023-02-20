@@ -70,20 +70,15 @@ def get_files_and_get_meta_file(directory):
     """
     Get the file paths for every video of .mp4 format as well as the file path of the metadata.json file.
     Assume that the metadata file is in the same directory as those mp4 videos
-    :param directory: the directory where all the mp4 files and the metadata.json are
-    :return: None
+    :param directory: the absolute directory path where all the mp4 files and the metadata.json are
+    :return: the list of absolute paths of all files and the absolute path of the metadata
     """
     file_paths = []
-    meta_files = []
-    if os.name == "nt":
-        # For Windows
-        vid_pattern = r"^.*\\.*\.mp4$"
-        metafile_pattern = r"^.*\\.*\.json$"
-    else:
-        # For Linux
-        vid_pattern = r"^.*\.mp4$"
-        metafile_pattern = r"^.*\.json$"
-
+    metafile_path = ""
+    # filenames will print the relative path of the mp4 and json, so no need to differentiate between
+    # different OS.
+    vid_pattern = r"^.*\.mp4$"
+    metafile_pattern = r"^.*\.json$"
     for dirname, _, filenames in os.walk(directory):
         for filename in filenames:
             if re.match(pattern=vid_pattern, string=filename):
@@ -93,9 +88,10 @@ def get_files_and_get_meta_file(directory):
                 file_paths.append(filepath)
                 # print(filepath)  # Optional. Uncomment if you want to check if the output is printed correctly.
             elif re.match(pattern=metafile_pattern, string=filename):
-                metafile_path = os.path.join(directory, filename)
-                meta_files.append(metafile_path)
-    return file_paths, meta_files
+                metafile_path = os.path.join(directory, filename) 
+    if metafile_path == "":
+        raise FileNotFoundError("metadata file is not found.")
+    return file_paths, metafile_path # There should be only one metafile.json in each partition
 
 
 def get_meta_dict(metafile_path):
@@ -120,12 +116,12 @@ def capture_video(dataset_path: str, vid_dest: str, meta_dict: dict):
 
     frame_time = 1 / cap.get(cv2.CAP_PROP_FPS)
     counter = 0
+    # Capture video name.
     if os.name == "nt":
-        # For Windows
-        pattern = r"^.*\\\\(.*)\.mp4$"
+        pattern = r"^.*\\(.*)\.mp4$"         # For Windows
+
     else:
-        # For Linux
-        pattern = r"^.*/(.*)\.mp4$"
+        pattern = r"^.*/(.*)\.mp4$"          # For Linux
     source_video = re.match(pattern=pattern, string=vid_dest)[1]
     label = meta_dict[f"{source_video}.mp4"]["label"]
 
@@ -220,12 +216,14 @@ def detect_face_add_labels_get_audio(frame, audio, source_video_name: str,
                                       f"{label.upper()}_{source_video_name}_{counter}.wav")
 
             # Save frames and audio
-            cv2.imwrite(path, cropped)
             frame_audio.write_audiofile(filename=audio_path, codec="pcm_s16le", verbose=False, logger=None)
             stft_ver = stft_np(audio_path)
-            return cropped, stft_ver
-        else:
-            return None
+            # Do not write image and audio if audio shape is not a specific shape
+            if stft_ver is not None:
+                cv2.imwrite(path, cropped)
+                return cropped, stft_ver
+            os.remove(audio_path) # Remove audio if audio shape is not good
+    return None
         # return the cropped image and audio
         # for (x, y, w, h) in profile_faces:
         # frame_bgr = cv2.rectangle(img=frame_bgr, pt1=(x, y), pt2=(x + w, y + h),
@@ -235,8 +233,9 @@ def detect_face_add_labels_get_audio(frame, audio, source_video_name: str,
 
 def get_absolute_paths(raw_data_folder="raw_videos", ds_folder="dataset"):
     """
-    Get absolute paths according to raw_data_folder and ds_folder.
-    :param raw_data_folder: The name of the folder inside the project folder where the raw_videos are held
+    Get absolute paths to raw_data_folder and ds_folder within the project folder. 
+    Doesn't work with multiple subfolder layers.
+    :param raw_data_folder: The name of the folder inside the project folder where  raw_videos are held
     :param ds_folder: The name of the folder inside the project folder where the extracted data are going to be sent
     :return: the absolute paths to all partition sub folders of the raw_data_folder and the path to the 
     dataset folder
@@ -257,13 +256,13 @@ def get_absolute_paths(raw_data_folder="raw_videos", ds_folder="dataset"):
 def extract_data(raw_data_path="raw_videos", ds_path="dataset"):
     """
     Must use absolute pathing. Only works for one partition of the kaggle set at a time.
-    raw_data_path: the absolute path to the original raw videos
-    ds_paths: the absolute path to the dataset folder to extract data to
+    raw_data_path: the absolute path to the partition of Kaggle's deepfake detection dataset.
+                    the path must also have the metadata.json file.
+    ds_paths: the absolute path to the dataset folder to extract data to.
     """
     # Multiple partitions with same metadata.json naming...
     detect_if_structure_exists(ds_path)
     mp4_file_paths, metafile_path = get_files_and_get_meta_file(raw_data_path)
-    metafile_path = metafile_path[0]  # There should be only one metafile in the training set
     meta_dictionary = get_meta_dict(metafile_path)
 
     num_videos = len(mp4_file_paths)  # Number of videos.
@@ -281,4 +280,5 @@ def extract_data(raw_data_path="raw_videos", ds_path="dataset"):
 
 if __name__ == "__main__":
     raw_data_paths, ds_path = get_absolute_paths()
-    # extract_data(raw_data_path=raw_data_path, ds_path=ds_path)
+    for kaggle_partition in raw_data_paths:
+        extract_data(kaggle_partition, ds_path)
