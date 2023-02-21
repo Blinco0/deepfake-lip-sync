@@ -1,5 +1,6 @@
 import os
 import re
+#TODO: Change get_path to get_project_path or sth.
 
 
 def get_path(script_path=os.path.dirname(__file__)):
