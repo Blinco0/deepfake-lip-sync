@@ -6,8 +6,8 @@ import time
 import cv2
 import numpy as np
 from moviepy.editor import *
-from audio_spectrogram import stft_np
-from get_paths import get_path
+from utils.audio_spectrogram import stft_np
+from utils.get_paths import get_path
 from tqdm import tqdm
 
 
@@ -100,6 +100,11 @@ def capture_video(dataset_path: str, vid_dest: str, meta_dict: dict):
     # Start the audio, too.
     audio = VideoFileClip(vid_dest).audio
 
+    faces = []
+    audios = []  # Heh, pun
+    if not audio: # Potentially some video may not have sound.
+        return np.asarray(faces), np.asarray(audios)
+
     frame_time = 1 / cap.get(cv2.CAP_PROP_FPS)
     counter = 0
     # Capture video name.
@@ -117,8 +122,6 @@ def capture_video(dataset_path: str, vid_dest: str, meta_dict: dict):
         print("Error opening video stream or file")
         exit(2)
 
-    faces = []
-    audios = []  # Heh, pun
     if label.lower() != "fake":
         while cap.isOpened():
             # Get the boolean ret if face is found from the frame itself.
