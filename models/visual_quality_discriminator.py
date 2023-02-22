@@ -10,12 +10,6 @@ import random
 import os
 import tensorflow as tf
 import re
-# TODO:
-#       Partitioning. I suppose that for a given dataset of size n, training the entire n dataset in a single epoch is
-#           equivalent to training that dataset in 2 epochs, with each epochs's dataset being of n/2 size.
-#       Might make the grab which model to continue automatic too, by saving the model name in a predictable pattern
-#       and grab the latest model based on how many models are there in saved_models.
-#       So sth like model5 is the 5th and latest model in a saved_models folder that has 5 models in there already.
 
 """
 Visual Quality Discriminator Model Definition
@@ -26,6 +20,8 @@ Meant to be used as the discriminator
 def quality_discriminator(training=True):
     """
     The quality discriminator in all of its glory
+    Going to be a combined model of both audio and video.
+    The one below now is current the video part.
     """
     model = tf.keras.models.Sequential([
         tf.keras.layers.Conv2D(3, 7, 1, activation='relu', input_shape=(256, 256, 3)),
