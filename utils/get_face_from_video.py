@@ -6,8 +6,8 @@ import time
 import cv2
 import numpy as np
 from moviepy.editor import *
-from audio_spectrogram import stft_np
-from get_paths import get_path
+from utils.audio_spectrogram import stft_np
+from utils.get_paths import get_path
 from tqdm import tqdm
 
 

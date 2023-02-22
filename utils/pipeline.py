@@ -2,7 +2,7 @@ import os
 import re
 import random
 import json
-from get_paths import get_path
+from utils.get_paths import get_path
 
 
 def choosing_data_for_batch(batch_num: int, batch_size: int, data_path: str, save_location: str):
