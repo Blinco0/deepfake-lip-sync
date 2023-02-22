@@ -2,7 +2,7 @@ import os
 import re
 import random
 import json
-from get_paths import get_path
+from utils.get_paths import get_path
 
 
 def choosing_data_for_batch(batch_num: int, batch_size: int, data_path: str, save_location: str):
@@ -30,7 +30,8 @@ def choosing_data_for_batch(batch_num: int, batch_size: int, data_path: str, sav
     for dirname, _, filenames in os.walk(data_path):
         for filename in filenames:
             if match := re.match(pattern=img_pattern, string=filename):
-                full_path = os.path.join(data_path, match.group(1))
+                full_path = match.group(1)
+                # full_path = os.path.join(data_path, match.group(1))
                 file_no_num = match.group(2)
                 if file_no_num not in list_of_fps_dict.keys():
                     list_of_fps_dict[file_no_num] = {full_path}
@@ -63,10 +64,15 @@ def choosing_data_for_batch(batch_num: int, batch_size: int, data_path: str, sav
 if __name__ == "__main__":
     project_path = get_path()
     file_name = "batches.json"
-    save_path = os.path.join(project_path, "utils", file_name)
+    # batches.json should now be saved into batch_data folder of this project.
+    save_path = os.path.join(project_path, "batch_data")
+    # Make the folder if it doesn't exist.
+    if os.path.exists(save_path) is False:
+        os.makedirs(save_path, exist_ok=True)
+    save_path = os.path.join(save_path, file_name)
     data_path = os.path.join(project_path, "dataset", "train", "real")
     print(save_path)
-    choosing_data_for_batch(batch_num=100, batch_size=100,
+    choosing_data_for_batch(batch_num=10000, batch_size=100,
                             data_path=data_path,
                             save_location=save_path)
 
