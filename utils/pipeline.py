@@ -64,7 +64,12 @@ def choosing_data_for_batch(batch_num: int, batch_size: int, data_path: str, sav
 if __name__ == "__main__":
     project_path = get_path()
     file_name = "batches.json"
-    save_path = os.path.join(project_path, "utils", file_name)
+    # batches.json should now be saved into batch_data folder of this project.
+    save_path = os.path.join(project_path, "batch_data")
+    # Make the folder if it doesn't exist.
+    if os.path.exists(save_path) is False:
+        os.makedirs(save_path, exist_ok=True)
+    save_path = os.path.join(save_path, file_name)
     data_path = os.path.join(project_path, "dataset", "train", "real")
     print(save_path)
     choosing_data_for_batch(batch_num=10000, batch_size=100,
