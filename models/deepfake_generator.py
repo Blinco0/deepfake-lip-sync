@@ -86,6 +86,9 @@ def audio_encoder():
 
 
 def generator():
+    """
+    Returns the function (in discrete sense) that is a model.
+    """
     identity_model = identity_encoder()
     audio_model = audio_encoder()
 
@@ -139,22 +142,33 @@ def generator():
     return combined_model
 
 def combined_generator(discriminator):
+    """
+    The generator will now receive the discriminator output to train itself, hence the word "combined"
+    Implemented using Tensorflow's symbolic tensors
+    """
+    # This is the start of the ultimate generator
+    # Input is just input. At this stage, they are separate from the whole model.
     input_face = keras.Input(shape=(256, 256, 6), name="input_face_comb")
     input_audio = keras.Input(shape=(6, 513, 1), name="input_audio_comb")
 
+    # This can be considered as the "body" of the ultimate generator, gen is a function.
     gen = generator()
 
+    # Since gen is a function (in discrete sense), it can receive arguments. fake_face is the output of the function.
     fake_face = gen([input_face, input_audio])
     discriminator.trainable = False
+    # The discriminator is also a function, so it can receive arguments. d is the output of the function.
     d = discriminator(fake_face)
 
-    model = keras.Model([input_face, input_audio], [fake_face, d])
+    # This is the ultimate generator which is also a function, starting with the inputs, and the outputs are outputs of both 
+    # the generator and the discrinator's outputs
+    gan_generator_model = keras.Model([input_face, input_audio], [fake_face, d])
 
-
-    model.compile(loss=['mae', 'binary_crossentropy'], 
+    # Now the model is compiled.
+    gan_generator_model.compile(loss=['mae', 'binary_crossentropy'], 
                             optimizer='adam', loss_weights=[1., .01])
 
-    return model
+    return gan_generator_model
 
 
 # mask_image("/home/hnguyen/PycharmProjects/deepfake-lip-sync/dataset/train/fake/FAKE_aktnlyqpah.mp4_111.png")

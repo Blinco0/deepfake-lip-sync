@@ -9,6 +9,16 @@ from PIL import Image
 import matplotlib.pyplot as plt
 from models.deepfake_generator import  combine_model as generator
 
+def foo(a, b, c, d):
+    """
+    
+    :param a:
+    :param b:
+    :param c:
+    :param d:
+    :return:
+    """
+    return
 # %matplotlib inline
 # def generator(z, output_channel_dim, training):
 #     with tf.compat.v1.variable_scope("generator", reuse= not training):
